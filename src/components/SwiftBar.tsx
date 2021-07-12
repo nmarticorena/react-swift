@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useContext } from 'react'
-import { FormDispatch } from '../components/Swift'
-import styles from '../styles/SwiftBar.module.css'
+import { FormDispatch } from './FormDispatch'
+import styles from '../styles/SwiftBar.module.scss'
 
 export interface ISwiftElement {
     element: string
@@ -41,7 +41,7 @@ const SwiftButton = (props: ISwiftElement): JSX.Element => {
     return (
         <div className={styles.buttonDiv}>
             <button
-                type='button'
+                type="button"
                 className={styles.buttonButton}
                 id={'button' + props.id}
                 onClick={() =>
@@ -95,7 +95,7 @@ const SwiftSlider = (props: ISwiftElement): JSX.Element => {
             </p>
             <input
                 ref={slider}
-                type='range'
+                type="range"
                 value={props.value}
                 step={props.step}
                 min={props.min}

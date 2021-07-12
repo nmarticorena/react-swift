@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useRef, Suspense, lazy } from 'react'
-
-import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import React, { useEffect, useState, useRef, Suspense, lazy } from 'react'
+import { useThree, useFrame } from '@react-three/fiber'
+import { PerspectiveCamera, useProgress, Html } from '@react-three/drei'
+
 THREE.Object3D.DefaultUp.set(0, 0, 1)
 const Loader = lazy(() => import('./Loader'))
 
@@ -15,7 +16,7 @@ export const Plane: React.FC = (): JSX.Element => {
         <mesh receiveShadow={true}>
             <planeBufferGeometry args={[200, 200]} />
             <meshPhongMaterial
-                color={new THREE.Color(0x4b4b4b)}
+                color={0x4b4b4b}
                 specular={new THREE.Color(0x101010)}
             />
         </mesh>
@@ -63,31 +64,41 @@ export interface ICameraProps {
 }
 
 export const Camera = (props: ICameraProps): JSX.Element => {
-    const { viewport, setDefaultCamera } = useThree()
+    // const { viewport, setDefaultCamera } = useThree()
+    const { viewport, set } = useThree()
 
     const { width, height } = viewport
 
     const camera = useRef<THREE.PerspectiveCamera>()
 
-    useEffect(() => {
-        if (props.setDefault) {
-            setDefaultCamera(camera.current)
-        }
-    })
+    // useEffect(() => {
+    //     if (props.setDefault) {
+    //         // setDefaultCamera(camera.current)
+    //         set({ camera: camera.current })
+    //     }
+    // }, [])
 
     useFrame((state, delta) => {
         props.fpsCallBack(1.0 / delta)
     })
 
     return (
-        <perspectiveCamera
-            ref={camera}
-            position={[0.2, 1.2, 0.7]}
-            near={0.01}
-            far={100}
-            fov={70}
-            aspect={height / width}
-        />
+
+        <PerspectiveCamera makeDefault     
+                position={[0.2, 1.2, 0.7]}
+                near={0.01}
+                far={100}
+                fov={70}
+                aspect={height / width} />
+        
+    //     <perspectiveCamera
+    //         ref={camera}
+    //         position={[0.2, 1.2, 0.7]}
+    //         near={0.01}
+    //         far={100}
+    //         fov={70}
+    //         aspect={height / width}
+    //     />
     )
 }
 
@@ -138,41 +149,16 @@ export interface IShapeProps {
 
 const BasicShape = (props: IShapeProps): JSX.Element => {
     const shape = useRef<THREE.Mesh>()
-    // useEffect(() => {
-    //     if (props.q) {
-    //         console.log(props.q)
-    //         // const q = new THREE.Quaternion(
-    //         //     props.q[1],
-    //         //     props.q[2],
-    //         //     props.q[3],
-    //         //     props.q[0]
-    //         // )
-    //         // shape.current.setRotationFromQuaternion(q)
-    //         // console.log(shape)
-
-    //         // shape.current.quaternion.set(
-    //         //     props.q[1],
-    //         //     props.q[2],
-    //         //     props.q[3],
-    //         //     props.q[0]
-    //         // )
-    //     }
-    // }, [])
-
-    // useFrame(() => {
-    //     if (shape.current) {
-    //         console.log(shape.current.up)
-    //     } else {
-    //         console.log(shape)
-    //     }
-    //     // console.log(shape.current.DefaultUp)
-    // })
 
     return (
         <mesh
             ref={shape}
-            position={props.t}
-            quaternion={props.q}
+            position={[props.t[0], props.t[1], props.t[2]]}
+            quaternion={
+                props.q
+                    ? [props.q[0], props.q[1], props.q[2], props.q[3]]
+                    : [1, 0, 0, 0]
+            }
             castShadow={true}
             name={'loaded'}
         >
@@ -191,47 +177,67 @@ const MeshShape = (props: IShapeProps): JSX.Element => {
 
     useEffect(() => {
         setHasMounted(true)
-
-        // const q = new THREE.Quaternion(
-        //     props.q[1],
-        //     props.q[2],
-        //     props.q[3],
-        //     props.q[0]
-        // )
-        // shape.current.setRotationFromQuaternion(q)
-        // console.log(shape)
     }, [])
 
+    function FallLoader() {
+        const { active, progress, errors, item, loaded, total } = useProgress()
+        return (
+            <Html center>
+                {Math.round(progress)} % loaded
+            </Html>
+        )
+    }
+
     return (
-        <>
+        <React.Fragment>
             {hasMounted && (
                 <Suspense
                     fallback={
-                        <BasicShape
-                            stype={'box'}
-                            scale={[0.1, 0.1, 0.1]}
-                            t={props.t}
-                            // q={props.q}
-                            opacity={0.1}
-                            color={0xffffff}
-                        />
+                        // <BasicShape
+                        //     stype={'box'}
+                        //     scale={[0.1, 0.1, 0.1]}
+                        //     t={props.t}
+                        //     // q={props.q}
+                        //     opacity={0.1}
+                        //     color={0xffffff}
+                        // />
+                        <FallLoader />
                     }
                 >
                     <Loader {...props} />
                 </Suspense>
             )}
-        </>
+        </React.Fragment>
+    )
+}
+
+const AxesShape = (props: IShapeProps): JSX.Element => {
+    const shape = useRef<THREE.Mesh>()
+
+    return (
+        <mesh
+            ref={shape}
+            position={[props.t[0], props.t[1], props.t[2]]}
+            quaternion={[props.q[0], props.q[1], props.q[2], props.q[3]]}
+            name={'loaded'}
+        >
+            <axesHelper args={[props.length]} />
+        </mesh>
     )
 }
 
 export const Shape = (props: IShapeProps): JSX.Element => {
     if (props.display === false) {
-        return <></>
+        return <React.Fragment></React.Fragment>
     }
 
     switch (props.stype) {
         case 'mesh':
             return <MeshShape {...props} />
+            break
+
+        case 'axes':
+            return <AxesShape {...props} />
             break
 
         case 'box':

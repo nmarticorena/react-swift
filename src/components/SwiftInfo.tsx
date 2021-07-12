@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react'
-import { FormDispatch } from '../components/Swift'
-import styles from '../styles/SwiftInfo.module.css'
+import { FormDispatch } from './FormDispatch'
+import styles from '../styles/SwiftInfo.module.scss'
 
 export interface ISwiftInfo {
     time: number

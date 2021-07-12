@@ -1,11 +1,11 @@
 .info {
     float: right;
     z-index: 10000;
-    position: fixed;
+    position: absolute;
     top: 0px;
     right: 0px;
     height: 32px;
-    /* // width: 175px; */
+    // width: 175px;
     width: 269px;
     color: #969696;
     text-align: left;
@@ -23,7 +23,7 @@
     width: 60px;
     display: inline-block;
     transform: translateY(-50%);
-    /* // right: 0px; */
+    // right: 0px;
     right: 94px;
 }
 
@@ -33,11 +33,11 @@
     width: 80px;
     display: inline-block;
     transform: translateY(-50%);
-    /* // right: 60px; */
+    // right: 60px;
     right: 154px;
 }
 
-/* // ------ Buttons ----------------------------- */
+// ------ Buttons -----------------------------
 .spacer {
     float: right;
     width: 10px;

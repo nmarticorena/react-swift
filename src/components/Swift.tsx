@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+THREE.Object3D.DefaultUp.set(0, 0, 1)
 import React, {
     useState,
     useEffect,
@@ -8,11 +9,14 @@ import React, {
     lazy,
     Suspense,
 } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useFrame } from '@react-three/fiber'
 import SwiftInfo from '../components/SwiftInfo'
-import SwiftBar from '../components/SwiftBar'
-import styles from '../styles/Swift.module.css'
-import formReducer from './Swift.reducer'
+import SwiftBar, { ISwiftBar, ISwiftElement } from '../components/SwiftBar'
+import styles from '../styles/Swift.module.scss'
+import formReducer, { DEFUALT_ELEMENTS } from './Swift.reducer'
+import { FormDispatch } from './FormDispatch'
+import { Stats } from '@react-three/drei'
+
 import {
     Plane,
     ShadowedLight,
@@ -20,7 +24,6 @@ import {
     IShapeProps,
     Shape,
 } from './SwiftComponents'
-THREE.Object3D.DefaultUp.set(0, 0, 1)
 
 const Controls = lazy(() => import('./Controls'))
 
@@ -58,7 +61,7 @@ const GroupCollection = React.forwardRef<THREE.Group, IGroupCollection>(
 export interface ISwiftProps {
     port: number
 }
-export const FormDispatch = React.createContext(null)
+
 
 const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     const [hasMounted, setHasMounted] = useState(false)
@@ -76,18 +79,23 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     })
 
     const setFrames = useCallback((delta) => {
-        // let newFrameTime = [...frameTime]
-        // let newFrameI = frameI
-        // let total = 0
-        // newFrameI += 1
-        // if (newFrameI >= 10) {
-        //     newFrameI = 0
-        // }
-        // newFrameTime[newFrameI] = delta
-        // for (let j = 0; j < 10; j++) {
-        //     total += newFrameTime[j]
-        // }
-        // total = Math.round(total / 10.0)
+        let newFrameTime = [...frameTime]
+        let newFrameI = frameI
+        let total = 0
+
+        newFrameI += 1
+        if (newFrameI >= 10) {
+            newFrameI = 0
+        }
+
+        newFrameTime[newFrameI] = delta
+
+        for (let j = 0; j < 10; j++) {
+            total += newFrameTime[j]
+        }
+
+        total = Math.round(total / 10.0)
+
         // setFrameTime(newFrameTime)
         // setFrameI(newFrameI)
         // if (total === Infinity) {
@@ -122,7 +130,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     }, [])
 
     useEffect(() => {
-        ws.current.onmessage = (event) => {
+        ;(ws.current.onmessage = (event) => {
             const eventdata = JSON.parse(event.data)
             const func = eventdata[0]
             const data = eventdata[1]
@@ -230,8 +238,9 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 default:
                     break
             }
-        }
-    }, [shapeDesc, formState])
+        }),
+            [shapeDesc, formState]
+    })
 
     return (
         <div className={styles.swiftContainer}>
@@ -240,7 +249,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 <SwiftBar elements={formState.formElements} />
             </FormDispatch.Provider>
 
-            <Canvas gl={{ antialias: true }} shadowMap={{ enabled: true }}>
+            <Canvas gl={{ antialias: true }} >
                 <Camera setDefault={true} fpsCallBack={setFrames} />
                 {hasMounted && (
                     <Suspense fallback={null}>
@@ -248,7 +257,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                     </Suspense>
                 )}
                 <hemisphereLight
-                    // skyColor={0x443333}
+                    // skyColor={new THREE.Color(0x443333)}
                     groundColor={new THREE.Color(0x111122)}
                 />
                 <ShadowedLight
@@ -270,97 +279,8 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 <axesHelper args={[100]} />
 
                 <GroupCollection meshes={shapeDesc} ref={shapes} />
-                {/* <Shape
-                    stype={'mesh'}
-                    scale={[0.5, 0.5, 0.5]}
-                    filename={'vercel.svg'}
-                    t={[-0.5, 0, 0.5]}
-                    opacity={0.3}
-                />
-
-                <Shape
-                    stype={'mesh'}
-                    scale={[0.5, 0.5, 0.5]}
-                    filename={'one.stl'}
-                    t={[0.0, 1.0, 0.5]}
-                    opacity={0.3}
-                />
-
-                <Shape
-                    stype={'mesh'}
-                    scale={[10, 10, 10]}
-                    filename={'BoomBox.glb'}
-                    t={[0.0, 0.0, 0.5]}
-                    opacity={0.5}
-                />
-
-                <Shape
-                    stype={'mesh'}
-                    scale={[0.001, 0.001, 0.001]}
-                    filename={'2cylinderengine.gltf'}
-                    t={[0.5, 0.0, 0.5]}
-                    opacity={0.9}
-                /> */}
-
-                {/* <Shape
-                    stype={'mesh'}
-                    scale={[1, 1, 1]}
-                    filename={'walle.dae'}
-                    t={[0.0, -1.5, 0.0]}
-                    q={[0, 0, 0, 1]}
-                    opacity={0.2}
-                />
-
-                <Shape
-                    stype={'mesh'}
-                    scale={[1, 1, 1]}
-                    filename={'walle.dae'}
-                    t={[0.0, 0.5, 0.0]}
-                    q={[0, 0, 0, 1]}
-                    opacity={0.2}
-                /> */}
-
-                {/* <Shape
-                    stype={'mesh'}
-                    scale={[1, 1, 1]}
-                    filename={'walle.obj'}
-                    t={[0.0, -2, 0.0]}
-                    opacity={0.4}
-                />
-
-                <Shape
-                    stype={'mesh'}
-                    scale={[1, 1, 1]}
-                    filename={'walle.wrl'}
-                    t={[0.0, -3, 0.0]}
-                    opacity={0.4}
-                />
-
-                <Shape
-                    stype={'mesh'}
-                    scale={[1, 1, 1]}
-                    filename={'walle.ply'}
-                    t={[1.5, 0, 0.0]}
-                    opacity={0.8}
-                />
-
-                <Shape
-                    stype={'mesh'}
-                    scale={[0.004, 0.004, 0.004]}
-                    filename={'sheep.fbx'}
-                    t={[0, 0.4, 0.3]}
-                    opacity={0.1}
-                />
-
-                <Shape
-                    stype={'mesh'}
-                    scale={[1, 1, 1]}
-                    filename={'model.pcd'}
-                    t={[1, 1, 0.5]}
-                    opacity={0.5}
-                    color={0x123456}
-                /> */}
             </Canvas>
+            {/* < Loader /> */}
         </div>
     )
 }
