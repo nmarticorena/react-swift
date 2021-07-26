@@ -62,6 +62,13 @@ export interface ISwiftProps {
     port: number
 }
 
+interface CanvasElement extends HTMLCanvasElement {
+    captureStream(frameRate?: number): MediaStream;
+}
+
+// interface StreamElement extends MediaStream {
+//     videoTracks(): MediaStreamTrack[];
+// }
 
 const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     const [hasMounted, setHasMounted] = useState(false)
@@ -77,6 +84,8 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         formData: {},
         formElements: [],
     })
+    const pc = useRef<RTCPeerConnection>(null)
+    const stream = useRef<MediaStream>(null)
 
     const setFrames = useCallback((delta) => {
         let newFrameTime = [...frameTime]
@@ -104,6 +113,39 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         // setFPS(`${total} fps`)
     }, [])
 
+    const negotiate = (ws) => {
+        return pc.current.createOffer().then(function(offer) {
+            return pc.current.setLocalDescription(offer);
+        }).then(function() {
+            // wait for ICE gathering to complete
+            return new Promise<void>((resolve) => {
+                if (pc.current.iceGatheringState === 'complete') {
+                    resolve();
+                } else {
+                    const checkState = () => {
+                        if (pc.current.iceGatheringState === 'complete') {
+                            pc.current.removeEventListener('icegatheringstatechange', checkState);
+                            resolve();
+                        }
+                    }
+                    pc.current.addEventListener('icegatheringstatechange', checkState);
+                }
+            });
+        }).then(function() {
+            var offer = pc.current.localDescription;
+    
+            const message = JSON.stringify({
+                type: 'offer',
+                offer: {
+                    sdp: offer.sdp,
+                    type: offer.type,
+                }
+            })
+
+            ws.send(message)
+        })
+    }
+
     useEffect(() => {
         setHasMounted(true)
         let port = props.port
@@ -127,6 +169,34 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             ws.current.send('Connected')
             setConnected(true)
         }
+
+        // pc.current = new RTCPeerConnection();
+
+        // const canvas = document.querySelector('canvas') as CanvasElement;
+        // console.log(canvas)
+        
+        // stream.current = canvas.captureStream(5);
+        // console.log(stream)
+
+        // stream.current.getTracks().forEach(
+        //     track => {
+        //         pc.current.addTrack(
+        //             track,
+        //             stream.current
+        //         );
+        //     }
+        // );
+        // return negotiate(ws.current);
+
+        // navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+        //     stream.getTracks().forEach(function(track) {
+        //         pc.current.addTrack(track, stream);
+        //     });
+        //     return negotiate(ws.current);
+        // }, function(err) {
+        //     alert('Could not acquire media: ' + err);
+        // });
+
     }, [])
 
     useEffect(() => {
@@ -136,6 +206,10 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             const data = eventdata[1]
 
             switch (func) {
+                // case 'offer':
+                //     pc.current.setRemoteDescription(data)
+                //     break
+                
                 case 'shape_mounted':
                     {
                         const id = data[0]
@@ -249,7 +323,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 <SwiftBar elements={formState.formElements} />
             </FormDispatch.Provider>
 
-            <Canvas gl={{ antialias: true }} >
+            <Canvas gl={{ antialias: true }} id={"threeCanvas"} >
                 <Camera setDefault={true} fpsCallBack={setFrames} />
                 {hasMounted && (
                     <Suspense fallback={null}>
