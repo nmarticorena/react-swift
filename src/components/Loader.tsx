@@ -21,11 +21,14 @@ export interface IMeshShapeProps extends IShapeProps {
 }
 
 const traverseChildren = (child, opacity, shadow) => {
+    // console.log(child.uuid)
     if (child.isMesh) {
+        child.material = child.material.clone()
         if (shadow) {
             child.castShadow = true
             child.receiveShadow = true
         }
+        // console.log(child.material.uuid)
 
         if (opacity !== 1.0) {
             if (child.material.isMaterial) {
@@ -109,7 +112,7 @@ const GLTFAsset = (props: IMeshShapeProps): JSX.Element => {
 
 const ColladaAsset = (props: IMeshShapeProps): JSX.Element => {
     const model = useLoader(ColladaLoader, props.url)
-    const scene = useMemo(() => model.scene.clone(), [model.scene])
+    const scene = useMemo(() => model.scene.clone(true), [model.scene])
 
     useEffect(() => {
         scene.children.forEach((child) => {
@@ -118,27 +121,7 @@ const ColladaAsset = (props: IMeshShapeProps): JSX.Element => {
 
         scene.name = 'loaded'
 
-        // if (props.q) {
-        //     model.scene.quaternion.set(
-        //         props.q[0],
-        //         props.q[1],
-        //         props.q[2],
-        //         props.q[3]
-        //     )
-        // }
-    })
-
-    // return (
-    //     <group
-    //         position={props.t}
-    //         castShadow={true}
-    //         receiveShadow={true}
-    //         scale={props.scale}
-    //         quaternion={props.q}
-    //     >
-    //         <primitive object={model.scene} />
-    //     </group>
-    // )
+    }, [scene])
 
     return (
         <primitive
