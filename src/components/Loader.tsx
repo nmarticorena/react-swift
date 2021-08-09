@@ -21,14 +21,20 @@ export interface IMeshShapeProps extends IShapeProps {
 }
 
 const traverseChildren = (child, opacity, shadow) => {
-    // console.log(child.uuid)
     if (child.isMesh) {
-        child.material = child.material.clone()
+        
+        if (Array.isArray(child.material)) {
+            child.material.forEach((mat) => {
+                mat = mat.clone()
+            })
+        } else {
+            child.material = child.material.clone()
+        }
+
         if (shadow) {
             child.castShadow = true
             child.receiveShadow = true
         }
-        // console.log(child.material.uuid)
 
         if (opacity !== 1.0) {
             if (child.material.isMaterial) {
