@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { extend, useThree, useFrame, ReactThreeFiber } from '@react-three/fiber'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
@@ -18,7 +18,7 @@ declare global {
 }
 
 export interface IControlProps {
-    look_at: number[]
+    look_at?: number[]
 }
 
 const Controls = (props: IControlProps): JSX.Element => {
@@ -38,7 +38,7 @@ const Controls = (props: IControlProps): JSX.Element => {
             props.look_at[1],
             props.look_at[2]
         )
-    })
+    }, [props.look_at])
 
     return <orbitControls ref={controls} args={[camera, domElement]} />
 }
