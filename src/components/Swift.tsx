@@ -16,7 +16,7 @@ import styles from '../styles/Swift.module.scss'
 import formReducer, { DEFUALT_ELEMENTS } from './Swift.reducer'
 import { FormDispatch } from './FormDispatch'
 import { Stats } from '@react-three/drei'
-
+import { IControlProps } from './Controls'
 import {
     Plane,
     ShadowedLight,
@@ -63,7 +63,7 @@ export interface ISwiftProps {
 }
 
 interface CanvasElement extends HTMLCanvasElement {
-    captureStream(frameRate?: number): MediaStream;
+    captureStream(frameRate?: number): MediaStream
 }
 
 // interface StreamElement extends MediaStream {
@@ -84,8 +84,10 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         formData: {},
         formElements: [],
     })
-    const pc = useRef<RTCPeerConnection>(null)
-    const stream = useRef<MediaStream>(null)
+    const [cameraPosition, setCameraPosition] = useState([0.2, 1.2, 0.7])
+    const [cameraLookAt, setCameraLookAt] = useState([0, 0, 0.2])
+    // const pc = useRef<RTCPeerConnection>(null)
+    // const stream = useRef<MediaStream>(null)
 
     const setFrames = useCallback((delta) => {
         let newFrameTime = [...frameTime]
@@ -114,36 +116,46 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     }, [])
 
     const negotiate = (ws) => {
-        return pc.current.createOffer().then(function(offer) {
-            return pc.current.setLocalDescription(offer);
-        }).then(function() {
-            // wait for ICE gathering to complete
-            return new Promise<void>((resolve) => {
-                if (pc.current.iceGatheringState === 'complete') {
-                    resolve();
-                } else {
-                    const checkState = () => {
-                        if (pc.current.iceGatheringState === 'complete') {
-                            pc.current.removeEventListener('icegatheringstatechange', checkState);
-                            resolve();
-                        }
-                    }
-                    pc.current.addEventListener('icegatheringstatechange', checkState);
-                }
-            });
-        }).then(function() {
-            var offer = pc.current.localDescription;
-    
-            const message = JSON.stringify({
-                type: 'offer',
-                offer: {
-                    sdp: offer.sdp,
-                    type: offer.type,
-                }
+        return pc.current
+            .createOffer()
+            .then(function (offer) {
+                return pc.current.setLocalDescription(offer)
             })
+            .then(function () {
+                // wait for ICE gathering to complete
+                return new Promise<void>((resolve) => {
+                    if (pc.current.iceGatheringState === 'complete') {
+                        resolve()
+                    } else {
+                        const checkState = () => {
+                            if (pc.current.iceGatheringState === 'complete') {
+                                pc.current.removeEventListener(
+                                    'icegatheringstatechange',
+                                    checkState
+                                )
+                                resolve()
+                            }
+                        }
+                        pc.current.addEventListener(
+                            'icegatheringstatechange',
+                            checkState
+                        )
+                    }
+                })
+            })
+            .then(function () {
+                var offer = pc.current.localDescription
 
-            ws.send(message)
-        })
+                const message = JSON.stringify({
+                    type: 'offer',
+                    offer: {
+                        sdp: offer.sdp,
+                        type: offer.type,
+                    },
+                })
+
+                ws.send(message)
+            })
     }
 
     useEffect(() => {
@@ -174,7 +186,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
         // const canvas = document.querySelector('canvas') as CanvasElement;
         // console.log(canvas)
-        
+
         // stream.current = canvas.captureStream(5);
         // console.log(stream)
 
@@ -196,7 +208,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         // }, function(err) {
         //     alert('Could not acquire media: ' + err);
         // });
-
     }, [])
 
     useEffect(() => {
@@ -209,7 +220,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 // case 'offer':
                 //     pc.current.setRemoteDescription(data)
                 //     break
-                
+
                 case 'shape_mounted':
                     {
                         const id = data[0]
@@ -309,6 +320,12 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                     })
                     break
 
+                case 'camera_pose':
+                    setCameraPosition(data.t)
+                    setCameraLookAt(data.look_at)
+
+                    break
+
                 default:
                     break
             }
@@ -323,11 +340,11 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 <SwiftBar elements={formState.formElements} />
             </FormDispatch.Provider>
 
-            <Canvas gl={{ antialias: true }} id={"threeCanvas"} >
-                <Camera setDefault={true} fpsCallBack={setFrames} />
+            <Canvas gl={{ antialias: true }} id={'threeCanvas'}>
+                <Camera t={cameraPosition} fpsCallBack={setFrames} />
                 {hasMounted && (
                     <Suspense fallback={null}>
-                        <Controls />
+                        <Controls look_at={cameraLookAt} />
                     </Suspense>
                 )}
                 <hemisphereLight

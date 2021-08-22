@@ -17,7 +17,11 @@ declare global {
     }
 }
 
-const Controls = (): JSX.Element => {
+export interface IControlProps {
+    look_at: number[]
+}
+
+const Controls = (props: IControlProps): JSX.Element => {
     const {
         camera,
         gl: { domElement },
@@ -29,8 +33,12 @@ const Controls = (): JSX.Element => {
     useFrame(() => controls.current.update())
 
     useEffect(() => {
-        controls.current.target = new THREE.Vector3(0, 0, 0.2)
-    }, [])
+        controls.current.target = new THREE.Vector3(
+            props.look_at[0],
+            props.look_at[1],
+            props.look_at[2]
+        )
+    })
 
     return <orbitControls ref={controls} args={[camera, domElement]} />
 }
