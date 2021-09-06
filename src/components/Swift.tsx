@@ -6,10 +6,10 @@ import React, {
     useCallback,
     useReducer,
     useRef,
-    lazy,
     Suspense,
 } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
+import { useCapture } from './Recorder'
 import SwiftInfo from '../components/SwiftInfo'
 import SwiftBar, { ISwiftBar, ISwiftElement } from '../components/SwiftBar'
 import styles from '../styles/Swift.module.scss'
@@ -25,7 +25,8 @@ import {
     Shape,
 } from './SwiftComponents'
 
-const Controls = lazy(() => import('./Controls'))
+// const Controls = lazy(() => import('./Controls'))
+import Controls from './Controls'
 
 interface IMeshCollection {
     meshes: IShapeProps[]
@@ -86,8 +87,12 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     })
     const [cameraPosition, setCameraPosition] = useState([0.2, 1.2, 0.7])
     const [cameraLookAt, setCameraLookAt] = useState([0, 0, 0.2])
+
     // const pc = useRef<RTCPeerConnection>(null)
     // const stream = useRef<MediaStream>(null)
+
+    const [bind, startRecording, stopRecording, loadCapture, screenshot] =
+        useCapture()
 
     const setFrames = useCallback((delta) => {
         let newFrameTime = [...frameTime]
@@ -115,51 +120,52 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         // setFPS(`${total} fps`)
     }, [])
 
-    const negotiate = (ws) => {
-        return pc.current
-            .createOffer()
-            .then(function (offer) {
-                return pc.current.setLocalDescription(offer)
-            })
-            .then(function () {
-                // wait for ICE gathering to complete
-                return new Promise<void>((resolve) => {
-                    if (pc.current.iceGatheringState === 'complete') {
-                        resolve()
-                    } else {
-                        const checkState = () => {
-                            if (pc.current.iceGatheringState === 'complete') {
-                                pc.current.removeEventListener(
-                                    'icegatheringstatechange',
-                                    checkState
-                                )
-                                resolve()
-                            }
-                        }
-                        pc.current.addEventListener(
-                            'icegatheringstatechange',
-                            checkState
-                        )
-                    }
-                })
-            })
-            .then(function () {
-                var offer = pc.current.localDescription
+    // const negotiate = (ws) => {
+    //     return pc.current
+    //         .createOffer()
+    //         .then(function (offer) {
+    //             return pc.current.setLocalDescription(offer)
+    //         })
+    //         .then(function () {
+    //             // wait for ICE gathering to complete
+    //             return new Promise<void>((resolve) => {
+    //                 if (pc.current.iceGatheringState === 'complete') {
+    //                     resolve()
+    //                 } else {
+    //                     const checkState = () => {
+    //                         if (pc.current.iceGatheringState === 'complete') {
+    //                             pc.current.removeEventListener(
+    //                                 'icegatheringstatechange',
+    //                                 checkState
+    //                             )
+    //                             resolve()
+    //                         }
+    //                     }
+    //                     pc.current.addEventListener(
+    //                         'icegatheringstatechange',
+    //                         checkState
+    //                     )
+    //                 }
+    //             })
+    //         })
+    //         .then(function () {
+    //             var offer = pc.current.localDescription
 
-                const message = JSON.stringify({
-                    type: 'offer',
-                    offer: {
-                        sdp: offer.sdp,
-                        type: offer.type,
-                    },
-                })
+    //             const message = JSON.stringify({
+    //                 type: 'offer',
+    //                 offer: {
+    //                     sdp: offer.sdp,
+    //                     type: offer.type,
+    //                 },
+    //             })
 
-                ws.send(message)
-            })
-    }
+    //             ws.send(message)
+    //         })
+    // }
 
     useEffect(() => {
         setHasMounted(true)
+
         let port = props.port
 
         if (port === 0) {
@@ -173,7 +179,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         ws.current = new WebSocket('ws://localhost:' + port + '/')
         ws.current.onopen = () => {
             ws.current.onclose = () => {
-                setTimeout(function () {
+                setTimeout(() => {
                     window.close()
                 }, 5000)
             }
@@ -326,6 +332,26 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
                     break
 
+                case 'start_recording':
+                    loadCapture(parseFloat(data[0]), data[2], data[1])
+                    startRecording()
+
+                    ws.current.send('0')
+
+                    break
+
+                case 'stop_recording':
+                    stopRecording()
+                    ws.current.send('0')
+
+                    break
+
+                case 'screenshot':
+                    screenshot(data[0])
+                    ws.current.send('0')
+
+                    break
+
                 default:
                     break
             }
@@ -340,13 +366,18 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 <SwiftBar elements={formState.formElements} />
             </FormDispatch.Provider>
 
-            <Canvas gl={{ antialias: true }} id={'threeCanvas'}>
+            <Canvas
+                gl={{ antialias: true, preserveDrawingBuffer: true }}
+                id={'threeCanvas'}
+                onCreated={bind}
+            >
                 <Camera t={cameraPosition} fpsCallBack={setFrames} />
                 {hasMounted && (
                     <Suspense fallback={null}>
                         <Controls look_at={cameraLookAt} />
                     </Suspense>
                 )}
+                {/* <Controls look_at={cameraLookAt} /> */}
                 <hemisphereLight
                     // skyColor={new THREE.Color(0x443333)}
                     groundColor={new THREE.Color(0x111122)}
