@@ -8,7 +8,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader'
-import { VRMLLoader } from 'three/examples/jsm/loaders/VRMLLoader'
+// import { VRMLLoader } from 'three/examples/jsm/loaders/VRMLLoader'
 import { PCDLoader } from 'three/examples/jsm/loaders/PCDLoader'
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader'
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
@@ -22,7 +22,6 @@ export interface IMeshShapeProps extends IShapeProps {
 
 const traverseChildren = (child, opacity, shadow) => {
     if (child.isMesh) {
-        
         if (Array.isArray(child.material)) {
             child.material.forEach((mat) => {
                 mat = mat.clone()
@@ -79,7 +78,7 @@ const STLAsset = (props: IMeshShapeProps): JSX.Element => {
             receiveShadow={true}
             name={'loaded'}
         >
-            <primitive object={scene} attach="geometry" />
+            <primitive object={scene} attach='geometry' />
             <meshStandardMaterial
                 color={props.color ? props.color : defaultColor}
                 transparent={props.opacity !== 1.0 ? true : false}
@@ -126,7 +125,6 @@ const ColladaAsset = (props: IMeshShapeProps): JSX.Element => {
         })
 
         scene.name = 'loaded'
-
     }, [scene])
 
     return (
@@ -166,27 +164,27 @@ const OBJAsset = (props: IMeshShapeProps): JSX.Element => {
     )
 }
 
-const VRMLAsset = (props: IMeshShapeProps): JSX.Element => {
-    const model = useLoader(VRMLLoader, props.url)
+// const VRMLAsset = (props: IMeshShapeProps): JSX.Element => {
+//     const model = useLoader(VRMLLoader, props.url)
 
-    useEffect(() => {
-        model.children.forEach((child) => {
-            traverseChildren(child, props.opacity, true)
-        })
-    })
+//     useEffect(() => {
+//         model.children.forEach((child) => {
+//             traverseChildren(child, props.opacity, true)
+//         })
+//     })
 
-    return (
-        <mesh
-            position={[props.t[0], props.t[1], props.t[2]]}
-            quaternion={[props.q[0], props.q[1], props.q[2], props.q[3]]}
-            scale={[props.scale[0], props.scale[1], props.scale[2]]}
-            castShadow={true}
-            receiveShadow={true}
-        >
-            <primitive object={model} />
-        </mesh>
-    )
-}
+//     return (
+//         <mesh
+//             position={[props.t[0], props.t[1], props.t[2]]}
+//             quaternion={[props.q[0], props.q[1], props.q[2], props.q[3]]}
+//             scale={[props.scale[0], props.scale[1], props.scale[2]]}
+//             castShadow={true}
+//             receiveShadow={true}
+//         >
+//             <primitive object={model} />
+//         </mesh>
+//     )
+// }
 
 const PCDAsset = (props: IMeshShapeProps): JSX.Element => {
     const model = useLoader(PCDLoader, props.url)
@@ -223,7 +221,7 @@ const PLYAsset = (props: IMeshShapeProps): JSX.Element => {
             castShadow={true}
             receiveShadow={true}
         >
-            <primitive object={model} attach="geometry" />
+            <primitive object={model} attach='geometry' />
             <meshStandardMaterial
                 color={props.color ? props.color : defaultColor}
                 transparent={props.opacity !== 1.0 ? true : false}
@@ -258,14 +256,14 @@ const FBXAsset = (props: IMeshShapeProps): JSX.Element => {
 const SVGShape = ({ shape, color, index, opacity }) => (
     <mesh>
         <meshLambertMaterial
-            attach="material"
+            attach='material'
             color={color}
             polygonOffset
             polygonOffsetFactor={index * -0.1}
             transparent={opacity !== 1.0 ? true : false}
             opacity={opacity ? opacity : 1.0}
         />
-        <shapeBufferGeometry attach="geometry" args={[shape]} />
+        <shapeBufferGeometry attach='geometry' args={[shape]} />
     </mesh>
 )
 
@@ -300,7 +298,7 @@ const Loader = (props: IShapeProps): JSX.Element => {
     const ext = props.filename.split('.').pop().toLowerCase()
     let url = props.filename
 
-    url = "retrieve/" + url
+    url = 'retrieve/' + url
 
     switch (ext) {
         case 'stl':
@@ -320,9 +318,9 @@ const Loader = (props: IShapeProps): JSX.Element => {
             return <OBJAsset url={url} {...props} />
             break
 
-        case 'wrl':
-            return <VRMLAsset url={url} {...props} />
-            break
+        // case 'wrl':
+        //     return <VRMLAsset url={url} {...props} />
+        //     break
 
         case 'pcd':
             return <PCDAsset url={url} {...props} />
