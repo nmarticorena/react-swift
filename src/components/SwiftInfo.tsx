@@ -145,6 +145,8 @@ const SwiftInfo = (props: ISwiftInfo): JSX.Element => {
         })
     }
 
+    const screenshot = () => {}
+
     return (
         <div className={styles.info}>
             <div className={styles.spacer}></div>
@@ -164,6 +166,12 @@ const SwiftInfo = (props: ISwiftInfo): JSX.Element => {
                 path={renderB}
                 onClick={startrender}
                 title={renderT}
+                connected={!props.connected}
+            />
+            <SwiftAction
+                path={'icons/snap.svg'}
+                onClick={screenshot}
+                title={'Take screenshot'}
                 connected={!props.connected}
             />
             <div className={styles.fps}>{props.FPS}</div>
