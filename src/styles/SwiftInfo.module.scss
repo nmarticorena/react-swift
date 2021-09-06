@@ -6,7 +6,7 @@
     right: 0px;
     height: 32px;
     // width: 175px;
-    width: 269px;
+    width: 295px;
     color: #969696;
     text-align: left;
     background-color: #1e1e1e;
@@ -17,6 +17,7 @@
     font-size: 13px;
 }
 
+// 16 px + 26 * num_buttons
 .info .fps {
     position: absolute;
     top: 50%;
@@ -24,7 +25,7 @@
     display: inline-block;
     transform: translateY(-50%);
     // right: 0px;
-    right: 94px;
+    right: 120px;
 }
 
 .info .simTime {
@@ -34,7 +35,7 @@
     display: inline-block;
     transform: translateY(-50%);
     // right: 60px;
-    right: 154px;
+    right: 180px;
 }
 
 // ------ Buttons -----------------------------
