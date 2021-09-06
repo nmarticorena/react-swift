@@ -12,8 +12,10 @@ export default {
     output: {
       dir: './dist',
       format: 'es',
+      name: 'swift',
       exports: 'named',
-      sourcemap: true
+      sourcemap: true,
+    //   inlineDynamicImports: true
     },
     plugins: [
         peerDepsExternal(),
