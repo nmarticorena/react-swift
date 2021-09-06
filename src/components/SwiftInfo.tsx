@@ -6,6 +6,7 @@ export interface ISwiftInfo {
     time: number
     FPS: string
     connected: boolean
+    screenshot: (string) => void
 }
 
 export interface ISwiftAction {
@@ -145,7 +146,10 @@ const SwiftInfo = (props: ISwiftInfo): JSX.Element => {
         })
     }
 
-    const screenshot = () => {}
+    const screenshot = () => {
+        console.log(props)
+        props.screenshot('swift_snap')
+    }
 
     return (
         <div className={styles.info}>

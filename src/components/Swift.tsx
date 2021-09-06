@@ -362,7 +362,12 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     return (
         <div className={styles.swiftContainer}>
             <FormDispatch.Provider value={formDispatch}>
-                <SwiftInfo time={time} FPS={FPS} connected={connected} />
+                <SwiftInfo
+                    time={time}
+                    FPS={FPS}
+                    connected={connected}
+                    screenshot={screenshot}
+                />
                 <SwiftBar elements={formState.formElements} />
             </FormDispatch.Provider>
 
