@@ -147,7 +147,6 @@ const SwiftInfo = (props: ISwiftInfo): JSX.Element => {
     }
 
     const screenshot = () => {
-        console.log(props)
         props.screenshot('swift_snap')
     }
 

@@ -9,7 +9,7 @@ import React, {
     Suspense,
 } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { useCapture } from './Recorder'
+import Capture, { ICaptureProps } from './Recorder'
 import SwiftInfo from '../components/SwiftInfo'
 import SwiftBar, { ISwiftBar, ISwiftElement } from '../components/SwiftBar'
 import styles from '../styles/Swift.module.scss'
@@ -23,6 +23,7 @@ import {
     Camera,
     IShapeProps,
     Shape,
+    ICameraProps,
 } from './SwiftComponents'
 
 // const Controls = lazy(() => import('./Controls'))
@@ -87,12 +88,33 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     })
     const [cameraPosition, setCameraPosition] = useState([0.2, 1.2, 0.7])
     const [cameraLookAt, setCameraLookAt] = useState([0, 0, 0.2])
+    const [captureState, setCaptureState] = useState<ICaptureProps>({
+        screenshot: false,
+        startRecord: false,
+        stopRecord: false,
+        isRecording: false,
+        shouldCapture: false,
+        ext: 'png',
+        filename: 'swift_recording',
+        snap_filename: 'swift_snap',
+        format: '',
+        framerate: 40,
+        setStates: (dict) => {
+            setCaptureState({ ...dict })
+        },
+    })
 
     // const pc = useRef<RTCPeerConnection>(null)
     // const stream = useRef<MediaStream>(null)
 
-    const [bind, startRecording, stopRecording, loadCapture, screenshot] =
-        useCapture()
+    // const [
+    //     bind,
+    //     startRecording,
+    //     stopRecording,
+    //     loadCapture,
+    //     screenshot,
+    //     setCapture,
+    // ] = useCapture()
 
     const setFrames = useCallback((delta) => {
         let newFrameTime = [...frameTime]
@@ -119,6 +141,10 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         // }
         // setFPS(`${total} fps`)
     }, [])
+
+    // const setCaptureStates = (key, value) => {
+    //     setCaptureState({ ...captureState, [key]: value })
+    // }
 
     // const negotiate = (ws) => {
     //     return pc.current
@@ -301,6 +327,10 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                             ].setRotationFromQuaternion(quat)
                         })
                     })
+
+                    // setCapture()
+                    setCaptureState({ ...captureState, shouldCapture: true })
+
                     break
 
                 case 'sim_time':
@@ -333,21 +363,28 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                     break
 
                 case 'start_recording':
-                    loadCapture(parseFloat(data[0]), data[2], data[1])
-                    startRecording()
+                    setCaptureState({
+                        ...captureState,
+                        format: data[2],
+                        framerate: data[0],
+                        filename: data[1],
+                        startRecord: true,
+                    })
+                    // loadCapture(parseFloat(data[0]), data[2], data[1])
+                    // startRecording()
 
                     ws.current.send('0')
 
                     break
 
                 case 'stop_recording':
-                    stopRecording()
+                    setCaptureState({ ...captureState, stopRecord: true })
                     ws.current.send('0')
 
                     break
 
                 case 'screenshot':
-                    screenshot(data[0])
+                    setCaptureState({ ...captureState, screenshot: true })
                     ws.current.send('0')
 
                     break
@@ -366,16 +403,20 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                     time={time}
                     FPS={FPS}
                     connected={connected}
-                    screenshot={screenshot}
+                    screenshot={() =>
+                        setCaptureState({ ...captureState, screenshot: true })
+                    }
                 />
                 <SwiftBar elements={formState.formElements} />
             </FormDispatch.Provider>
 
             <Canvas
                 gl={{ antialias: true, preserveDrawingBuffer: true }}
+                // frameloop='demand'
                 id={'threeCanvas'}
-                onCreated={bind}
+                // onCreated={bind}
             >
+                <Capture {...captureState} />
                 <Camera t={cameraPosition} fpsCallBack={setFrames} />
                 {hasMounted && (
                     <Suspense fallback={null}>

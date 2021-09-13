@@ -672,6 +672,7 @@ CCGIFEncoder.prototype.save = function( callback ) {
       }
 
       window.setTimeout = function (callback, time) {
+        time = 5000
         var t = {
           callback: callback,
           time: time,
