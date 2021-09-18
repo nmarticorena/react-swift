@@ -104,82 +104,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         },
     })
 
-    // const pc = useRef<RTCPeerConnection>(null)
-    // const stream = useRef<MediaStream>(null)
-
-    const setFrames = useCallback((delta) => {
-        let newFrameTime = [...frameTime]
-        let newFrameI = frameI
-        let total = 0
-
-        newFrameI += 1
-        if (newFrameI >= 10) {
-            newFrameI = 0
-        }
-
-        newFrameTime[newFrameI] = delta
-
-        for (let j = 0; j < 10; j++) {
-            total += newFrameTime[j]
-        }
-
-        total = Math.round(total / 10.0)
-
-        // setFrameTime(newFrameTime)
-        // setFrameI(newFrameI)
-        // if (total === Infinity) {
-        //     total = 60
-        // }
-        // setFPS(`${total} fps`)
-    }, [])
-
-    // const setCaptureStates = (key, value) => {
-    //     setCaptureState({ ...captureState, [key]: value })
-    // }
-
-    // const negotiate = (ws) => {
-    //     return pc.current
-    //         .createOffer()
-    //         .then(function (offer) {
-    //             return pc.current.setLocalDescription(offer)
-    //         })
-    //         .then(function () {
-    //             // wait for ICE gathering to complete
-    //             return new Promise<void>((resolve) => {
-    //                 if (pc.current.iceGatheringState === 'complete') {
-    //                     resolve()
-    //                 } else {
-    //                     const checkState = () => {
-    //                         if (pc.current.iceGatheringState === 'complete') {
-    //                             pc.current.removeEventListener(
-    //                                 'icegatheringstatechange',
-    //                                 checkState
-    //                             )
-    //                             resolve()
-    //                         }
-    //                     }
-    //                     pc.current.addEventListener(
-    //                         'icegatheringstatechange',
-    //                         checkState
-    //                     )
-    //                 }
-    //             })
-    //         })
-    //         .then(function () {
-    //             var offer = pc.current.localDescription
-
-    //             const message = JSON.stringify({
-    //                 type: 'offer',
-    //                 offer: {
-    //                     sdp: offer.sdp,
-    //                     type: offer.type,
-    //                 },
-    //             })
-
-    //             ws.send(message)
-    //         })
-    // }
-
     useEffect(() => {
         let socket = true
         setHasMounted(true)
@@ -207,33 +131,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 setConnected(true)
             }
         }
-
-        // pc.current = new RTCPeerConnection();
-
-        // const canvas = document.querySelector('canvas') as CanvasElement;
-        // console.log(canvas)
-
-        // stream.current = canvas.captureStream(5);
-        // console.log(stream)
-
-        // stream.current.getTracks().forEach(
-        //     track => {
-        //         pc.current.addTrack(
-        //             track,
-        //             stream.current
-        //         );
-        //     }
-        // );
-        // return negotiate(ws.current);
-
-        // navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
-        //     stream.getTracks().forEach(function(track) {
-        //         pc.current.addTrack(track, stream);
-        //     });
-        //     return negotiate(ws.current);
-        // }, function(err) {
-        //     alert('Could not acquire media: ' + err);
-        // });
     }, [])
 
     const ws_shape_mounted = (data) => {
