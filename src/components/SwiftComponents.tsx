@@ -60,38 +60,15 @@ export const ShadowedLight: React.FC<IShadowedLightProps> = (
 }
 
 export interface ICameraProps {
-    fpsCallBack: any
     t: number[]
 }
 
-// export interface CameraPose {
-//     t: number[]
-//     q: number[]
-//     look_at_origin: boolean
-
-// }
-
 export const Camera = (props: ICameraProps): JSX.Element => {
-    // const { viewport, setDefaultCamera } = useThree()
     const { viewport, set } = useThree()
 
     const { width, height } = viewport
 
     const camera = useRef<THREE.PerspectiveCamera>()
-
-    // useEffect(() => {
-    //     // if (props.setDefault) {
-    //     //     // setDefaultCamera(camera.current)
-    //     //     set({ camera: camera.current })
-    //     // }
-    //     // camera.current.setRotationFromQuaternion(new THREE.Quaternion(props.pose.q[0], props.pose.q[1], props.pose.q[2], props.pose.q[3]))
-    //     camera.current.lookAt(0, 5, 0)
-
-    // }, [camera])
-
-    useFrame((state, delta) => {
-        props.fpsCallBack(1.0 / delta)
-    })
 
     return (
         <PerspectiveCamera
@@ -103,15 +80,6 @@ export const Camera = (props: ICameraProps): JSX.Element => {
             fov={70}
             aspect={height / width}
         />
-
-        //     <perspectiveCamera
-        //         ref={camera}
-        //         position={[0.2, 1.2, 0.7]}
-        //         near={0.01}
-        //         far={100}
-        //         fov={70}
-        //         aspect={height / width}
-        //     />
     )
 }
 

@@ -107,15 +107,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     // const pc = useRef<RTCPeerConnection>(null)
     // const stream = useRef<MediaStream>(null)
 
-    // const [
-    //     bind,
-    //     startRecording,
-    //     stopRecording,
-    //     loadCapture,
-    //     screenshot,
-    //     setCapture,
-    // ] = useCapture()
-
     const setFrames = useCallback((delta) => {
         let newFrameTime = [...frameTime]
         let newFrameI = frameI
@@ -190,6 +181,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     // }
 
     useEffect(() => {
+        let socket = true
         setHasMounted(true)
 
         let port = props.port
@@ -198,20 +190,22 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             port = parseInt(window.location.search.substring(1))
         }
 
-        if (!port) {
-            port = 0
+        if (port === null) {
+            socket = false
         }
 
-        ws.current = new WebSocket('ws://localhost:' + port + '/')
-        ws.current.onopen = () => {
-            ws.current.onclose = () => {
-                setTimeout(() => {
-                    window.close()
-                }, 5000)
-            }
+        if (socket) {
+            ws.current = new WebSocket('ws://localhost:' + port + '/')
+            ws.current.onopen = () => {
+                ws.current.onclose = () => {
+                    setTimeout(() => {
+                        window.close()
+                    }, 5000)
+                }
 
-            ws.current.send('Connected')
-            setConnected(true)
+                ws.current.send('Connected')
+                setConnected(true)
+            }
         }
 
         // pc.current = new RTCPeerConnection();
@@ -242,159 +236,159 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         // });
     }, [])
 
-    useEffect(() => {
-        ;(ws.current.onmessage = (event) => {
-            const eventdata = JSON.parse(event.data)
-            const func = eventdata[0]
-            const data = eventdata[1]
+    const ws_shape_mounted = (data) => {
+        {
+            const id = data[0]
+            const len = data[1]
 
-            switch (func) {
-                // case 'offer':
-                //     pc.current.setRemoteDescription(data)
-                //     break
-
-                case 'shape_mounted':
-                    {
-                        const id = data[0]
-                        const len = data[1]
-
-                        try {
-                            let loaded = 0
-                            shapes.current.children[id].children.forEach(
-                                (ob, i) => {
-                                    if (ob.name === 'loaded') {
-                                        loaded++
-                                    }
-                                }
-                            )
-
-                            if (loaded === len) {
-                                ws.current.send('1')
-                            } else {
-                                ws.current.send('0')
-                            }
-                        } catch (err) {
-                            ws.current.send('0')
-                        }
+            try {
+                let loaded = 0
+                shapes.current.children[id].children.forEach((ob, i) => {
+                    if (ob.name === 'loaded') {
+                        loaded++
                     }
-                    break
+                })
 
-                case 'shape':
-                    {
-                        const id = shapeDesc.length.toString()
-                        setShapeDesc([...shapeDesc, data])
-                        ws.current.send(id)
-                    }
-                    break
-
-                case 'remove':
-                    const newShapeDesc = [...shapeDesc]
-                    newShapeDesc[data] = []
-                    setShapeDesc(newShapeDesc)
+                if (loaded === len) {
+                    ws.current.send('1')
+                } else {
                     ws.current.send('0')
-                    break
-
-                case 'shape_poses':
-                    if (Object.keys(formState.formData).length !== 0) {
-                        ws.current.send(JSON.stringify(formState.formData))
-
-                        formDispatch({
-                            type: 'reset',
-                            indices: Object.keys(formState.formData),
-                        })
-                    } else {
-                        ws.current.send('[]')
-                    }
-
-                    data.forEach((object) => {
-                        const id = object[0]
-                        const group = object[1]
-
-                        group.forEach((pose, i) => {
-                            shapes.current.children[id].children[
-                                i
-                            ].position.set(pose.t[0], pose.t[1], pose.t[2])
-
-                            let quat = new THREE.Quaternion(
-                                pose.q[0],
-                                pose.q[1],
-                                pose.q[2],
-                                pose.q[3]
-                            )
-
-                            shapes.current.children[id].children[
-                                i
-                            ].setRotationFromQuaternion(quat)
-                        })
-                    })
-
-                    // setCapture()
-                    setCaptureState({ ...captureState, shouldCapture: true })
-
-                    break
-
-                case 'sim_time':
-                    setTime(parseFloat(data))
-                    break
-
-                case 'close':
-                    ws.current.close()
-                    window.close()
-                    break
-
-                case 'element':
-                    formDispatch({ type: 'newElement', data: data })
-                    ws.current.send('0')
-
-                    break
-
-                case 'update_element':
-                    formDispatch({
-                        type: 'wsUpdate',
-                        index: data.id,
-                        data: data,
-                    })
-                    break
-
-                case 'camera_pose':
-                    setCameraPosition(data.t)
-                    setCameraLookAt(data.look_at)
-
-                    break
-
-                case 'start_recording':
-                    setCaptureState({
-                        ...captureState,
-                        format: data[2],
-                        framerate: data[0],
-                        filename: data[1],
-                        startRecord: true,
-                    })
-                    // loadCapture(parseFloat(data[0]), data[2], data[1])
-                    // startRecording()
-
-                    ws.current.send('0')
-
-                    break
-
-                case 'stop_recording':
-                    setCaptureState({ ...captureState, stopRecord: true })
-                    ws.current.send('0')
-
-                    break
-
-                case 'screenshot':
-                    setCaptureState({ ...captureState, screenshot: true })
-                    ws.current.send('0')
-
-                    break
-
-                default:
-                    break
+                }
+            } catch (err) {
+                ws.current.send('0')
             }
-        }),
-            [shapeDesc, formState]
-    })
+        }
+    }
+
+    const ws_shape = (data) => {
+        const id = shapeDesc.length.toString()
+        setShapeDesc([...shapeDesc, data])
+        ws.current.send(id)
+    }
+
+    const ws_remove = (data) => {
+        const newShapeDesc = [...shapeDesc]
+        newShapeDesc[data] = []
+        setShapeDesc(newShapeDesc)
+        ws.current.send('0')
+    }
+
+    const ws_shape_poses = (data) => {
+        if (Object.keys(formState.formData).length !== 0) {
+            ws.current.send(JSON.stringify(formState.formData))
+
+            formDispatch({
+                type: 'reset',
+                indices: Object.keys(formState.formData),
+            })
+        } else {
+            ws.current.send('[]')
+        }
+
+        data.forEach((object) => {
+            const id = object[0]
+            const group = object[1]
+
+            group.forEach((pose, i) => {
+                shapes.current.children[id].children[i].position.set(
+                    pose.t[0],
+                    pose.t[1],
+                    pose.t[2]
+                )
+
+                let quat = new THREE.Quaternion(
+                    pose.q[0],
+                    pose.q[1],
+                    pose.q[2],
+                    pose.q[3]
+                )
+
+                shapes.current.children[id].children[
+                    i
+                ].setRotationFromQuaternion(quat)
+            })
+        })
+
+        // setCapture()
+        setCaptureState({ ...captureState, shouldCapture: true })
+    }
+
+    const ws_sim_time = (data) => {
+        setTime(parseFloat(data))
+    }
+
+    const ws_close = (data) => {
+        ws.current.close()
+        window.close()
+    }
+
+    const ws_element = (data) => {
+        formDispatch({ type: 'newElement', data: data })
+        ws.current.send('0')
+    }
+
+    const ws_update_element = (data) => {
+        formDispatch({
+            type: 'wsUpdate',
+            index: data.id,
+            data: data,
+        })
+    }
+
+    const ws_camera_pose = (data) => {
+        setCameraPosition(data.t)
+        setCameraLookAt(data.look_at)
+    }
+
+    const ws_start_recording = (data) => {
+        setCaptureState({
+            ...captureState,
+            format: data[2],
+            framerate: data[0],
+            filename: data[1],
+            startRecord: true,
+        })
+        // loadCapture(parseFloat(data[0]), data[2], data[1])
+        // startRecording()
+
+        ws.current.send('0')
+    }
+
+    const ws_stop_recording = (data) => {
+        setCaptureState({ ...captureState, stopRecord: true })
+        ws.current.send('0')
+    }
+
+    const ws_screenshot = (data) => {
+        setCaptureState({ ...captureState, screenshot: true })
+        ws.current.send('0')
+    }
+
+    const ws_funcs = {
+        shape_mounted: ws_shape_mounted,
+        shape: ws_shape,
+        remove: ws_remove,
+        shape_poses: ws_shape_poses,
+        sim_time: ws_sim_time,
+        close: ws_close,
+        element: ws_element,
+        update_element: ws_update_element,
+        camera_pose: ws_camera_pose,
+        start_recording: ws_start_recording,
+        stop_recording: ws_stop_recording,
+        screenshot: ws_screenshot,
+    }
+
+    useEffect(() => {
+        if (ws.current) {
+            ws.current.onmessage = (event) => {
+                const eventdata = JSON.parse(event.data)
+                const func = eventdata[0]
+                const data = eventdata[1]
+                ws_funcs[func](data)
+            }
+        }
+    }, [shapeDesc, formState])
 
     return (
         <div className={styles.swiftContainer}>
@@ -412,22 +406,16 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
             <Canvas
                 gl={{ antialias: true, preserveDrawingBuffer: true }}
-                // frameloop='demand'
                 id={'threeCanvas'}
-                // onCreated={bind}
             >
                 <Capture {...captureState} />
-                <Camera t={cameraPosition} fpsCallBack={setFrames} />
+                <Camera t={cameraPosition} />
                 {hasMounted && (
                     <Suspense fallback={null}>
                         <Controls look_at={cameraLookAt} />
                     </Suspense>
                 )}
-                {/* <Controls look_at={cameraLookAt} /> */}
-                <hemisphereLight
-                    // skyColor={new THREE.Color(0x443333)}
-                    groundColor={new THREE.Color(0x111122)}
-                />
+                <hemisphereLight groundColor={new THREE.Color(0x111122)} />
                 <ShadowedLight
                     x={10}
                     y={10}
@@ -448,7 +436,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
                 <GroupCollection meshes={shapeDesc} ref={shapes} />
             </Canvas>
-            {/* < Loader /> */}
         </div>
     )
 }
