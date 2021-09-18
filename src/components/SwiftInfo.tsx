@@ -4,7 +4,6 @@ import styles from '../styles/SwiftInfo.module.scss'
 
 export interface ISwiftInfo {
     time: number
-    FPS: string
     connected: boolean
     screenshot: (string) => void
 }
@@ -177,7 +176,6 @@ const SwiftInfo = (props: ISwiftInfo): JSX.Element => {
                 title={'Take screenshot'}
                 connected={!props.connected}
             />
-            <div className={styles.fps}>{props.FPS}</div>
             <div className={styles.simTime}>{convertTime(props.time)}</div>
         </div>
     )

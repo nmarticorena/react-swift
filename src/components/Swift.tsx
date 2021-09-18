@@ -1,13 +1,6 @@
 import * as THREE from 'three'
 THREE.Object3D.DefaultUp.set(0, 0, 1)
-import React, {
-    useState,
-    useEffect,
-    useCallback,
-    useReducer,
-    useRef,
-    Suspense,
-} from 'react'
+import React, { useState, useEffect, useReducer, useRef, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import Capture, { ICaptureProps } from './Recorder'
 import SwiftInfo from '../components/SwiftInfo'
@@ -15,8 +8,6 @@ import SwiftBar, { ISwiftBar, ISwiftElement } from '../components/SwiftBar'
 import styles from '../styles/Swift.module.scss'
 import formReducer, { DEFUALT_ELEMENTS } from './Swift.reducer'
 import { FormDispatch } from './FormDispatch'
-import { Stats } from '@react-three/drei'
-import { IControlProps } from './Controls'
 import {
     Plane,
     ShadowedLight,
@@ -26,7 +17,6 @@ import {
     ICameraProps,
 } from './SwiftComponents'
 
-// const Controls = lazy(() => import('./Controls'))
 import Controls from './Controls'
 
 interface IMeshCollection {
@@ -34,7 +24,6 @@ interface IMeshCollection {
 }
 
 const MeshCollection = (props: IMeshCollection): JSX.Element => {
-    // console.log(props)
     return (
         <group>
             {props.meshes.map((value, i) => {
@@ -64,20 +53,9 @@ export interface ISwiftProps {
     port: number
 }
 
-interface CanvasElement extends HTMLCanvasElement {
-    captureStream(frameRate?: number): MediaStream
-}
-
-// interface StreamElement extends MediaStream {
-//     videoTracks(): MediaStreamTrack[];
-// }
-
 const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     const [hasMounted, setHasMounted] = useState(false)
     const [time, setTime] = useState(0.0)
-    const [FPS, setFPS] = useState('60 fps')
-    const [frameTime, setFrameTime] = useState([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    const [frameI, setFrameI] = useState(0)
     const shapes = useRef<THREE.Group>()
     const ws = useRef<WebSocket>(null)
     const [shapeDesc, setShapeDesc] = useState<IShapeProps[][]>([])
@@ -292,7 +270,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             <FormDispatch.Provider value={formDispatch}>
                 <SwiftInfo
                     time={time}
-                    FPS={FPS}
                     connected={connected}
                     screenshot={() =>
                         setCaptureState({ ...captureState, screenshot: true })
