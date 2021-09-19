@@ -8,13 +8,13 @@ import SwiftBar, { ISwiftBar, ISwiftElement } from '../components/SwiftBar'
 import styles from '../styles/Swift.module.scss'
 import formReducer, { DEFUALT_ELEMENTS } from './Swift.reducer'
 import { FormDispatch } from './FormDispatch'
+import wsEvent from './eventEmitter'
 import {
     Plane,
     ShadowedLight,
     Camera,
     IShapeProps,
     Shape,
-    ICameraProps,
 } from './SwiftComponents'
 
 import Controls from './Controls'
@@ -48,6 +48,8 @@ const GroupCollection = React.forwardRef<THREE.Group, IGroupCollection>(
         )
     }
 )
+
+const SwiftState = () => {}
 
 export interface ISwiftProps {
     port: number
@@ -108,7 +110,14 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 ws.current.send('Connected')
                 setConnected(true)
             }
+            wsEvent.on('wsTx', (data) => {
+                ws.current.send(data)
+            })
         }
+
+        wsEvent.on('wsRx', (func, data) => {
+            ws_funcs[func](data)
+        })
     }, [])
 
     const ws_shape_mounted = (data) => {
@@ -125,12 +134,12 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 })
 
                 if (loaded === len) {
-                    ws.current.send('1')
+                    wsEvent.emit('wsTx', '1')
                 } else {
-                    ws.current.send('0')
+                    wsEvent.emit('wsTx', '0')
                 }
             } catch (err) {
-                ws.current.send('0')
+                wsEvent.emit('wsTx', '0')
             }
         }
     }
@@ -138,26 +147,26 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     const ws_shape = (data) => {
         const id = shapeDesc.length.toString()
         setShapeDesc([...shapeDesc, data])
-        ws.current.send(id)
+        wsEvent.emit('wsTx', id)
     }
 
     const ws_remove = (data) => {
         const newShapeDesc = [...shapeDesc]
         newShapeDesc[data] = []
         setShapeDesc(newShapeDesc)
-        ws.current.send('0')
+        wsEvent.emit('wsTx', '0')
     }
 
     const ws_shape_poses = (data) => {
         if (Object.keys(formState.formData).length !== 0) {
-            ws.current.send(JSON.stringify(formState.formData))
+            wsEvent.emit('wsTx', JSON.stringify(formState.formData))
 
             formDispatch({
                 type: 'reset',
                 indices: Object.keys(formState.formData),
             })
         } else {
-            ws.current.send('[]')
+            wsEvent.emit('wsTx', '[]')
         }
 
         data.forEach((object) => {
@@ -199,7 +208,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
     const ws_element = (data) => {
         formDispatch({ type: 'newElement', data: data })
-        ws.current.send('0')
+        wsEvent.emit('wsTx', '0')
     }
 
     const ws_update_element = (data) => {
@@ -226,17 +235,17 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         // loadCapture(parseFloat(data[0]), data[2], data[1])
         // startRecording()
 
-        ws.current.send('0')
+        wsEvent.emit('wsTx', '0')
     }
 
     const ws_stop_recording = (data) => {
         setCaptureState({ ...captureState, stopRecord: true })
-        ws.current.send('0')
+        wsEvent.emit('wsTx', '0')
     }
 
     const ws_screenshot = (data) => {
         setCaptureState({ ...captureState, screenshot: true })
-        ws.current.send('0')
+        wsEvent.emit('wsTx', '0')
     }
 
     const ws_funcs = {
@@ -260,7 +269,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 const eventdata = JSON.parse(event.data)
                 const func = eventdata[0]
                 const data = eventdata[1]
-                ws_funcs[func](data)
+                wsEvent.emit('wsRx', func, data)
             }
         }
     }, [shapeDesc, formState])

@@ -73,6 +73,7 @@
   "dependencies": {
     "@react-three/drei": "^7.0.6",
     "@react-three/fiber": "^6.2.3",
+    "events": "^3.3.0",
     "three": "^0.126.1"
   },
   "files": [
