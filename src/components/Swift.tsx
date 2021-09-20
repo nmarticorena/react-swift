@@ -244,7 +244,11 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     }
 
     const ws_screenshot = (data) => {
-        setCaptureState({ ...captureState, screenshot: true })
+        setCaptureState({
+            ...captureState,
+            screenshot: true,
+            snap_filename: data[0],
+        })
         wsEvent.emit('wsTx', '0')
     }
 
