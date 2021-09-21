@@ -110,7 +110,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 ws.current.send('Connected')
                 setConnected(true)
             }
-            wsEvent.on('wsTx', (data) => {
+            wsEvent.on('wsSwiftTx', (data) => {
                 ws.current.send(data)
             })
         }
@@ -134,12 +134,12 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 })
 
                 if (loaded === len) {
-                    wsEvent.emit('wsTx', '1')
+                    wsEvent.emit('wsSwiftTx', '1')
                 } else {
-                    wsEvent.emit('wsTx', '0')
+                    wsEvent.emit('wsSwiftTx', '0')
                 }
             } catch (err) {
-                wsEvent.emit('wsTx', '0')
+                wsEvent.emit('wsSwiftTx', '0')
             }
         }
     }
@@ -147,26 +147,26 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     const ws_shape = (data) => {
         const id = shapeDesc.length.toString()
         setShapeDesc([...shapeDesc, data])
-        wsEvent.emit('wsTx', id)
+        wsEvent.emit('wsSwiftTx', id)
     }
 
     const ws_remove = (data) => {
         const newShapeDesc = [...shapeDesc]
         newShapeDesc[data] = []
         setShapeDesc(newShapeDesc)
-        wsEvent.emit('wsTx', '0')
+        wsEvent.emit('wsSwiftTx', '0')
     }
 
     const ws_shape_poses = (data) => {
         if (Object.keys(formState.formData).length !== 0) {
-            wsEvent.emit('wsTx', JSON.stringify(formState.formData))
+            wsEvent.emit('wsSwiftTx', JSON.stringify(formState.formData))
 
             formDispatch({
                 type: 'reset',
                 indices: Object.keys(formState.formData),
             })
         } else {
-            wsEvent.emit('wsTx', '[]')
+            wsEvent.emit('wsSwiftTx', '[]')
         }
 
         data.forEach((object) => {
@@ -208,7 +208,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
     const ws_element = (data) => {
         formDispatch({ type: 'newElement', data: data })
-        wsEvent.emit('wsTx', '0')
+        wsEvent.emit('wsSwiftTx', '0')
     }
 
     const ws_update_element = (data) => {
@@ -235,12 +235,12 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         // loadCapture(parseFloat(data[0]), data[2], data[1])
         // startRecording()
 
-        wsEvent.emit('wsTx', '0')
+        wsEvent.emit('wsSwiftTx', '0')
     }
 
     const ws_stop_recording = (data) => {
         setCaptureState({ ...captureState, stopRecord: true })
-        wsEvent.emit('wsTx', '0')
+        wsEvent.emit('wsSwiftTx', '0')
     }
 
     const ws_screenshot = (data) => {
@@ -249,7 +249,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             screenshot: true,
             snap_filename: data[0],
         })
-        wsEvent.emit('wsTx', '0')
+        wsEvent.emit('wsSwiftTx', '0')
     }
 
     const ws_funcs = {
