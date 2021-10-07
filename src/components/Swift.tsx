@@ -18,6 +18,7 @@ import {
 } from './SwiftComponents'
 
 import Controls from './Controls'
+import { send } from 'process'
 
 interface IMeshCollection {
     meshes: IShapeProps[]
@@ -49,10 +50,14 @@ const GroupCollection = React.forwardRef<THREE.Group, IGroupCollection>(
     }
 )
 
-const SwiftState = () => {}
+const SwiftState = () => { }
 
 export interface ISwiftProps {
     port: number
+}
+
+interface CanvasElement extends HTMLCanvasElement {
+    captureStream(frameRate?: number): MediaStream
 }
 
 const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
@@ -83,6 +88,59 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             setCaptureState({ ...dict })
         },
     })
+    const pc = useRef<RTCPeerConnection>(null)
+    const pc_data = useRef(null)
+    const stream = useRef<MediaStream>(null)
+
+    const negotiate = () => {
+        return pc.current
+            .createOffer()
+            .then(function (offer) {
+                return pc.current.setLocalDescription(offer)
+            })
+            .then(function () {
+                // wait for ICE gathering to complete
+                return new Promise<void>((resolve) => {
+                    if (pc.current.iceGatheringState === 'complete') {
+                        resolve()
+                    } else {
+                        const checkState = () => {
+                            if (pc.current.iceGatheringState === 'complete') {
+                                pc.current.removeEventListener(
+                                    'icegatheringstatechange',
+                                    checkState
+                                )
+                                resolve()
+                            }
+                        }
+                        pc.current.addEventListener(
+                            'icegatheringstatechange',
+                            checkState
+                        )
+                    }
+                })
+            })
+            .then(function () {
+                var offer = pc.current.localDescription
+
+                const message = JSON.stringify({
+                    type: 'offer',
+                    offer: {
+                        sdp: offer.sdp,
+                        type: offer.type,
+                    },
+                })
+
+                wsEvent.emit('wsSwiftTx', message)
+
+                // ws.send(message)
+            })
+    }
+
+    const ws_rtc_offer = (data) => {
+        pc.current.setRemoteDescription(data)
+        sendData("kjbhgjh")
+    }
 
     useEffect(() => {
         let socket = true
@@ -116,9 +174,47 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         }
 
         wsEvent.on('wsRx', (func, data) => {
+            console.log(func, data)
             ws_funcs[func](data)
         })
+
+        pc.current = new RTCPeerConnection();
+
+        const canvas = document.querySelector('canvas') as CanvasElement;
+        console.log(canvas)
+
+        stream.current = canvas.captureStream(5);
+        console.log(stream)
+
+        // stream.current.getTracks().forEach(
+        //     track => {
+        //         pc.current.addTrack(
+        //             track,
+        //             stream.current
+        //         );
+        //     }
+        // );
+
+        const dataChannelParams = { ordered: false };
+        pc_data.current = pc.current.createDataChannel('sendDataChannel', dataChannelParams)
+
+        negotiate();
+
+        // navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
+        //     stream.getTracks().forEach(function (track) {
+        //         pc.current.addTrack(track, stream);
+        //     });
+        //     return negotiate(ws.current);
+        // }, function (err) {
+        //     alert('Could not acquire media: ' + err);
+        // });
     }, [])
+
+    const sendData = (data) => {
+        const timeBefore = performance.now();
+        pc_data.current.send(data);
+        const timeUsed = performance.now() - timeBefore;
+    }
 
     const ws_shape_mounted = (data) => {
         {
@@ -265,6 +361,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         start_recording: ws_start_recording,
         stop_recording: ws_stop_recording,
         screenshot: ws_screenshot,
+        offer: ws_rtc_offer,
     }
 
     useEffect(() => {
