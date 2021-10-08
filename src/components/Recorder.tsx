@@ -8,6 +8,7 @@ import * as React from 'react'
 import { useRef, useCallback, useMemo, useEffect, useState } from 'react'
 // import { SharedCanvasContext } from 'react-three-fiber'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import wsEvent from './eventEmitter'
 
 // type RecorderContext = [
 //     // (context: SharedCanvasContext) => void,
@@ -294,6 +295,8 @@ const Capture = (props: ICaptureProps): JSX.Element => {
                 shouldCapture: false,
             })
         }
+
+        wsEvent.emit('rtcImage', 1)
         // else if (props.isRecording && !props.shouldCapture) {
         //     capturer.capture(gl.domElement)
         // }

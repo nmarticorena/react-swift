@@ -67,6 +67,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     const ws = useRef<WebSocket>(null)
     const [shapeDesc, setShapeDesc] = useState<IShapeProps[][]>([])
     const [connected, setConnected] = useState(false)
+    const [rtcConnected, setRtcConnected] = useState(false)
     const [formState, formDispatch] = useReducer(formReducer, {
         formData: {},
         formElements: [],
@@ -139,7 +140,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
     const ws_rtc_offer = (data) => {
         pc.current.setRemoteDescription(data)
-        sendData("kjbhgjh")
+        
     }
 
     useEffect(() => {
@@ -197,6 +198,10 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
         const dataChannelParams = { ordered: false };
         pc_data.current = pc.current.createDataChannel('sendDataChannel', dataChannelParams)
+        pc_data.current.onopen = () => {
+            console.log("CONNECTED")
+            setRtcConnected(true)
+        }
 
         negotiate();
 
@@ -214,6 +219,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         const timeBefore = performance.now();
         pc_data.current.send(data);
         const timeUsed = performance.now() - timeBefore;
+        console.log(timeUsed)
     }
 
     const ws_shape_mounted = (data) => {
@@ -365,6 +371,17 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     }
 
     useEffect(() => {
+
+        wsEvent.on('rtcImage', (data) => {
+            if (rtcConnected) {
+                const canvas = document.querySelector('canvas') as CanvasElement;
+                const im = canvas.toDataURL('image/jpeg')
+                sendData(im)
+            } else {
+                console.log("not connected")
+            }
+        })
+
         if (ws.current) {
             ws.current.onmessage = (event) => {
                 const eventdata = JSON.parse(event.data)
@@ -373,7 +390,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 wsEvent.emit('wsRx', func, data)
             }
         }
-    }, [shapeDesc, formState])
+    }, [shapeDesc, formState, rtcConnected])
 
     return (
         <div className={styles.swiftContainer}>
