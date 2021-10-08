@@ -16,9 +16,15 @@ import {
     IShapeProps,
     Shape,
 } from './SwiftComponents'
+import { connectRTC } from './RTC'
 
 import Controls from './Controls'
 import { send } from 'process'
+
+const MAX_CHUNK_SIZE = 262144;
+let chunkSize;
+let lowWaterMark;
+let highWaterMark;
 
 interface IMeshCollection {
     meshes: IShapeProps[]
@@ -90,58 +96,8 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         },
     })
     const pc = useRef<RTCPeerConnection>(null)
-    const pc_data = useRef(null)
-    const stream = useRef<MediaStream>(null)
+    const pcDataChannel = useRef(null)
 
-    const negotiate = () => {
-        return pc.current
-            .createOffer()
-            .then(function (offer) {
-                return pc.current.setLocalDescription(offer)
-            })
-            .then(function () {
-                // wait for ICE gathering to complete
-                return new Promise<void>((resolve) => {
-                    if (pc.current.iceGatheringState === 'complete') {
-                        resolve()
-                    } else {
-                        const checkState = () => {
-                            if (pc.current.iceGatheringState === 'complete') {
-                                pc.current.removeEventListener(
-                                    'icegatheringstatechange',
-                                    checkState
-                                )
-                                resolve()
-                            }
-                        }
-                        pc.current.addEventListener(
-                            'icegatheringstatechange',
-                            checkState
-                        )
-                    }
-                })
-            })
-            .then(function () {
-                var offer = pc.current.localDescription
-
-                const message = JSON.stringify({
-                    type: 'offer',
-                    offer: {
-                        sdp: offer.sdp,
-                        type: offer.type,
-                    },
-                })
-
-                wsEvent.emit('wsSwiftTx', message)
-
-                // ws.send(message)
-            })
-    }
-
-    const ws_rtc_offer = (data) => {
-        pc.current.setRemoteDescription(data)
-        
-    }
 
     useEffect(() => {
         let socket = true
@@ -175,51 +131,32 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         }
 
         wsEvent.on('wsRx', (func, data) => {
-            console.log(func, data)
+            // console.log(func, data)
             ws_funcs[func](data)
         })
 
         pc.current = new RTCPeerConnection();
-
-        const canvas = document.querySelector('canvas') as CanvasElement;
-        console.log(canvas)
-
-        stream.current = canvas.captureStream(5);
-        console.log(stream)
-
-        // stream.current.getTracks().forEach(
-        //     track => {
-        //         pc.current.addTrack(
-        //             track,
-        //             stream.current
-        //         );
-        //     }
-        // );
-
-        const dataChannelParams = { ordered: false };
-        pc_data.current = pc.current.createDataChannel('sendDataChannel', dataChannelParams)
-        pc_data.current.onopen = () => {
-            console.log("CONNECTED")
-            setRtcConnected(true)
-        }
-
-        negotiate();
-
-        // navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
-        //     stream.getTracks().forEach(function (track) {
-        //         pc.current.addTrack(track, stream);
-        //     });
-        //     return negotiate(ws.current);
-        // }, function (err) {
-        //     alert('Could not acquire media: ' + err);
-        // });
+        pcDataChannel.current = connectRTC(pc.current, onOpenRTC, onCloseRTC)
     }, [])
+
+    const onOpenRTC = () => {
+        setRtcConnected(true)
+    }
+
+    const onCloseRTC = () => {
+        setRtcConnected(false)
+    }
 
     const sendData = (data) => {
         const timeBefore = performance.now();
-        pc_data.current.send(data);
+        pcDataChannel.current.send(data);
         const timeUsed = performance.now() - timeBefore;
         console.log(timeUsed)
+    }
+
+    const ws_rtc_offer = (data) => {
+        pc.current.setRemoteDescription(data)
+        
     }
 
     const ws_shape_mounted = (data) => {

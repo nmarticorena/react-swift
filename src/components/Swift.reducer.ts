@@ -1,7 +1,7 @@
 export const DEFUALT_ELEMENTS = 3;
 
 const formReducer = (state, action) => {
-    console.log('action: ', action, "state ", state);
+    // console.log('action: ', action, "state ", state);
     switch (action.type) {
         case 'newElement':
             return {

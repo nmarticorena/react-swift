@@ -221,7 +221,7 @@ const Capture = (props: ICaptureProps): JSX.Element => {
 
     useEffect(() => {
         if (props.startRecord) {
-            console.log('HUIGHIUG')
+            // console.log('HUIGHIUG')
 
             // } else {
             //     capturer.current = new cct({
