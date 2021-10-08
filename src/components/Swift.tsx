@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 THREE.Object3D.DefaultUp.set(0, 0, 1)
-import React, { useState, useEffect, useReducer, useRef, Suspense } from 'react'
+import React, { useState, useEffect, useReducer, useRef, Suspense, useCallback } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import Capture, { ICaptureProps } from './Recorder'
 import SwiftInfo from '../components/SwiftInfo'
@@ -111,14 +111,28 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 setConnected(true)
             }
             wsEvent.on('wsSwiftTx', (data) => {
+                console.log(data)
                 ws.current.send(data)
             })
         }
 
+        if (ws.current) {
+            ws.current.onmessage = (event) => {
+                const eventdata = JSON.parse(event.data)
+                const func = eventdata[0]
+                const data = eventdata[1]
+                wsEvent.emit('wsRx', func, data)
+            }
+        }
+    }, [])
+
+    useEffect(() => {
+        wsEvent.removeAllListeners('wsRx')
         wsEvent.on('wsRx', (func, data) => {
+            console.log(func)
             ws_funcs[func](data)
         })
-    }, [])
+    }, [shapeDesc, formState])
 
     const ws_shape_mounted = (data) => {
         {
@@ -146,6 +160,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
     const ws_shape = (data) => {
         const id = shapeDesc.length.toString()
+        console.log(id)
         setShapeDesc([...shapeDesc, data])
         wsEvent.emit('wsSwiftTx', id)
     }
@@ -267,16 +282,16 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         screenshot: ws_screenshot,
     }
 
-    useEffect(() => {
-        if (ws.current) {
-            ws.current.onmessage = (event) => {
-                const eventdata = JSON.parse(event.data)
-                const func = eventdata[0]
-                const data = eventdata[1]
-                wsEvent.emit('wsRx', func, data)
-            }
-        }
-    }, [shapeDesc, formState])
+    // useEffect(() => {
+    //     // if (ws.current) {
+    //     //     ws.current.onmessage = (event) => {
+    //     //         const eventdata = JSON.parse(event.data)
+    //     //         const func = eventdata[0]
+    //     //         const data = eventdata[1]
+    //     //         wsEvent.emit('wsRx', func, data)
+    //     //     }
+    //     // }
+    // }, [shapeDesc, formState])
 
     return (
         <div className={styles.swiftContainer}>
