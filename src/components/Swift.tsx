@@ -20,11 +20,8 @@ import { connectRTC } from './RTC'
 
 import Controls from './Controls'
 import { send } from 'process'
+import { finished } from 'stream'
 
-const MAX_CHUNK_SIZE = 262144;
-let chunkSize;
-let lowWaterMark;
-let highWaterMark;
 
 interface IMeshCollection {
     meshes: IShapeProps[]
@@ -56,10 +53,20 @@ const GroupCollection = React.forwardRef<THREE.Group, IGroupCollection>(
     }
 )
 
-const SwiftState = () => { }
-
 export interface ISwiftProps {
     port: number
+}
+
+interface IDataParams {
+    chunkSize: number
+    lowWaterMark: number
+    highWaterMark: number
+}
+
+interface IDataMessage {
+    sendProgress: number
+    data: string
+    finished: boolean
 }
 
 interface CanvasElement extends HTMLCanvasElement {
@@ -95,8 +102,18 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             setCaptureState({ ...dict })
         },
     })
+    const [dataParams, setDataParams] = useState<IDataParams>({
+        chunkSize: 0,
+        lowWaterMark: 0,
+        highWaterMark: 0,
+    })
+    const [dataMessage, setDataMessage] = useState<IDataMessage>({
+        sendProgress: 0,
+        data: '',
+        finished: true
+    })
     const pc = useRef<RTCPeerConnection>(null)
-    const pcDataChannel = useRef(null)
+    const pcDataChannel = useRef<RTCDataChannel>(null)
 
 
     useEffect(() => {
@@ -130,31 +147,133 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             })
         }
 
-        wsEvent.on('wsRx', (func, data) => {
-            // console.log(func, data)
-            ws_funcs[func](data)
-        })
-
-        pc.current = new RTCPeerConnection();
-        pcDataChannel.current = connectRTC(pc.current, onOpenRTC, onCloseRTC)
+        if (ws.current) {
+            ws.current.onmessage = (event) => {
+                const eventdata = JSON.parse(event.data)
+                const func = eventdata[0]
+                const data = eventdata[1]
+                wsEvent.emit('wsRx', func, data)
+            }
+        }
     }, [])
 
+
+    useEffect(() => {
+        wsEvent.removeAllListeners('rtcLowWater')
+        wsEvent.on('rtcLowWater', (data) => {
+            sendData(false)
+        })
+
+        wsEvent.removeAllListeners('wsRx')
+        wsEvent.on('wsRx', (func, data) => {
+            ws_funcs[func](data)
+        })
+    }, [shapeDesc, formState, rtcConnected, dataParams, dataMessage])
+
     const onOpenRTC = () => {
+        console.log("OPENED")
         setRtcConnected(true)
+
+        const chunkSize = pc.current.sctp.maxMessageSize
+
+        setDataParams({
+            chunkSize: chunkSize,
+            lowWaterMark: chunkSize,
+            highWaterMark: 1 * chunkSize,
+        })
+
+        pcDataChannel.current.bufferedAmountLowThreshold = chunkSize;
+
+        pcDataChannel.current.addEventListener('bufferedamountlow', (e) => {
+            wsEvent.emit('rtcLowWater', false)
+        });
+
+        sendData(true)
     }
 
     const onCloseRTC = () => {
         setRtcConnected(false)
     }
 
-    const sendData = (data) => {
-        const timeBefore = performance.now();
-        pcDataChannel.current.send(data);
-        const timeUsed = performance.now() - timeBefore;
-        console.log(timeUsed)
+    const sendData = (connected: boolean, customDataMessage?: IDataMessage) => {
+        // const timeBefore = performance.now();
+
+        const data = customDataMessage ? customDataMessage : dataMessage
+
+        if (data.finished || (!rtcConnected && !connected)) {
+            return
+        }
+
+        console.log(data.sendProgress)
+
+        // If message is at the start
+        if (data.sendProgress === 0) {
+            pcDataChannel.current.send('imageStarting');
+        }
+
+        let sendProgress = data.sendProgress
+        let dataLengthRemaining = data.data.length - sendProgress
+        
+
+        while (dataLengthRemaining > 0) {
+
+            if (pcDataChannel.current.bufferedAmount > dataParams.highWaterMark) {
+                console.log("HIGH TIDE")
+                setDataMessage({
+                    ...data,
+                    sendProgress: sendProgress
+                })
+
+                return
+            }
+
+            const dataLengthToSend = Math.min(dataParams.chunkSize, dataLengthRemaining)
+
+            pcDataChannel.current.send(data.data.slice(sendProgress, sendProgress + dataLengthToSend));
+
+            // Update remaining amount
+            dataLengthRemaining = dataLengthRemaining - dataLengthToSend
+            sendProgress += dataLengthToSend
+        }
+
+        // If we made it this far, we finished the image
+        setDataMessage({
+            ...data, finished: true
+        })
+
+        pcDataChannel.current.send('imageFinished');
+        
+        // Let python know
+        wsEvent.emit('wsSwiftTx', '1')
+        console.log('Message Fin')
+
+        // const timeUsed = performance.now() - timeBefore;
+        // console.log(timeUsed)
+    }
+
+    const ws_get_frame = (data) => {
+        console.log('Frame Request')
+        const canvas = document.querySelector('canvas') as CanvasElement;
+        const im = canvas.toDataURL('image/jpeg', 0.9)
+
+        const dataMessage = {
+            sendProgress: 0,
+            data: im,
+            finished: false
+        }
+
+        setDataMessage(dataMessage)
+
+        sendData(false, dataMessage)
+    }
+
+    const ws_open_rtc = (data) => {
+        pc.current = new RTCPeerConnection();
+        pcDataChannel.current = connectRTC(pc.current, onOpenRTC, onCloseRTC)
     }
 
     const ws_rtc_offer = (data) => {
+        console.log(data)
         pc.current.setRemoteDescription(data)
         
     }
@@ -305,29 +424,9 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         stop_recording: ws_stop_recording,
         screenshot: ws_screenshot,
         offer: ws_rtc_offer,
+        get_frame: ws_get_frame,
+        open_rtc: ws_open_rtc
     }
-
-    useEffect(() => {
-
-        wsEvent.on('rtcImage', (data) => {
-            if (rtcConnected) {
-                const canvas = document.querySelector('canvas') as CanvasElement;
-                const im = canvas.toDataURL('image/jpeg')
-                sendData(im)
-            } else {
-                console.log("not connected")
-            }
-        })
-
-        if (ws.current) {
-            ws.current.onmessage = (event) => {
-                const eventdata = JSON.parse(event.data)
-                const func = eventdata[0]
-                const data = eventdata[1]
-                wsEvent.emit('wsRx', func, data)
-            }
-        }
-    }, [shapeDesc, formState, rtcConnected])
 
     return (
         <div className={styles.swiftContainer}>

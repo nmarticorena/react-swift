@@ -296,7 +296,7 @@ const Capture = (props: ICaptureProps): JSX.Element => {
             })
         }
 
-        wsEvent.emit('rtcImage', 1)
+        // wsEvent.emit('rtcImage', 1)
         // else if (props.isRecording && !props.shouldCapture) {
         //     capturer.capture(gl.domElement)
         // }

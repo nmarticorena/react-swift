@@ -2,7 +2,7 @@ import wsEvent from './eventEmitter'
 
 const connectRTC = (pc: RTCPeerConnection, onOpen: () => void, onClose: () => void) => {
 
-    const dataChannelParams = { ordered: false };
+    const dataChannelParams = { ordered: true, protocol: 'raw'};
 
     // Make a RTC data channel
     const pcDataChannel = pc.createDataChannel('sendDataChannel', dataChannelParams)
@@ -17,6 +17,11 @@ const connectRTC = (pc: RTCPeerConnection, onOpen: () => void, onClose: () => vo
         console.log("RTC Disconnected")
         console.log(ev)
         onClose()
+    }
+
+    pcDataChannel.onerror = (ev) => {
+        console.log("ERROR")
+        console.log(ev)
     }
 
     negotiateRTC(pc);
