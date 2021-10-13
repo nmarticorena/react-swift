@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 THREE.Object3D.DefaultUp.set(0, 0, 1)
-import React, { useState, useEffect, useReducer, useRef, Suspense } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import React, { useState, useEffect, useReducer, useRef, Suspense, useMemo } from 'react'
+import { Canvas, useFrame, useThree, createPortal } from '@react-three/fiber'
 import Capture, { ICaptureProps } from './Recorder'
 import SwiftInfo from '../components/SwiftInfo'
 import SwiftBar, { ISwiftBar, ISwiftElement } from '../components/SwiftBar'
@@ -21,6 +21,8 @@ import { connectRTC } from './RTC'
 import Controls from './Controls'
 import { send } from 'process'
 import { finished } from 'stream'
+
+import { PerspectiveCamera, OrthographicCamera, useCamera } from '@react-three/drei'
 
 
 interface IMeshCollection {
@@ -204,7 +206,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             return
         }
 
-        console.log(data.sendProgress)
+        // console.log(data.sendProgress)
 
         // If message is at the start
         if (data.sendProgress === 0) {
@@ -218,7 +220,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         while (dataLengthRemaining > 0) {
 
             if (pcDataChannel.current.bufferedAmount > dataParams.highWaterMark) {
-                console.log("HIGH TIDE")
+                // console.log("HIGH TIDE")
                 setDataMessage({
                     ...data,
                     sendProgress: sendProgress
@@ -245,15 +247,15 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         
         // Let python know
         wsEvent.emit('wsSwiftTx', '1')
-        console.log('Message Fin')
+        // console.log('Message Fin')
 
         // const timeUsed = performance.now() - timeBefore;
         // console.log(timeUsed)
     }
 
     const ws_get_frame = (data) => {
-        console.log('Frame Request')
-        const canvas = document.querySelector('canvas') as CanvasElement;
+        // console.log('Frame Request')
+        const canvas = document.getElementById('ccanvas') as CanvasElement;
         const im = canvas.toDataURL('image/jpeg', 0.9)
 
         const dataMessage = {
@@ -442,7 +444,8 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             </FormDispatch.Provider>
 
             <Canvas
-                gl={{ antialias: true, preserveDrawingBuffer: true }}
+                shadows={true}
+                gl={{ antialias: true, preserveDrawingBuffer: true}}
                 id={'threeCanvas'}
             >
                 <Capture {...captureState} />
@@ -472,9 +475,146 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 <axesHelper args={[100]} />
 
                 <GroupCollection meshes={shapeDesc} ref={shapes} />
+                <UserCamera />
             </Canvas>
+            <canvas id={'ccanvas'} style={{height: '1280', width: '720', display: 'none'}}>
+            </canvas>
         </div>
     )
 }
+
+const UserCamera = () => {
+    const virtualCam = useRef<THREE.PerspectiveCamera>()
+    const canvas = document.getElementById('ccanvas') as CanvasElement
+    const height = 720
+    const width = 1280
+    
+    const r2 = useMemo(() => {
+        const render = new THREE.WebGLRenderer({
+            canvas: canvas,
+            antialias: true,
+            alpha: true,
+            powerPreference: "high-performance",
+            preserveDrawingBuffer: true,
+        })
+        render.setSize(width, height)
+        render.setClearAlpha(0)
+        render.shadowMap.type = THREE.PCFSoftShadowMap
+        render.shadowMap.enabled = true
+        render.outputEncoding = THREE.sRGBEncoding
+        render.toneMapping = THREE.ACESFilmicToneMapping
+        return render
+    }, [])
+
+    useFrame(({scene}) => {
+        r2.render(scene, virtualCam.current)
+    }, 10)
+
+    useEffect(() => {
+        virtualCam.current.lookAt(0, 0, 0)
+    }, [])
+
+    return (
+        <>
+            <PerspectiveCamera
+                makeDefault={false}
+                ref={virtualCam}
+                position={[0.2, 1.2, 0.7]}
+                near={0.01}
+                far={100}
+                fov={70}
+                aspect={720 / 1280}
+            />
+        </>
+    )
+}
+
+// const CCamera = () => {
+//     const { gl, scene, camera, size } = useThree()
+//     const virtualScene = useMemo(() => new THREE.Scene(), [])
+//     const virtualCam = useRef()
+//     const ref = useRef()
+//     const [hover, set] = useState(null)
+//     const matrix = new THREE.Matrix4()
+//     const canvas = document.getElementById('ccanvas') as CanvasElement
+//     const height = 720
+//     const width = 1280
+    
+//     const r2 = useMemo(() => {
+//         const render = new THREE.WebGLRenderer({
+//             canvas: canvas,
+//             antialias: true,
+//             alpha: true,
+//             powerPreference: "high-performance",
+//             preserveDrawingBuffer: true,
+//         })
+//         render.setSize(width, height)
+//         render.setClearAlpha(0)
+//         render.shadowMap.type = THREE.PCFSoftShadowMap
+//         render.shadowMap.enabled = true
+//         render.outputEncoding = THREE.sRGBEncoding
+//         render.toneMapping = THREE.ACESFilmicToneMapping
+//         return render
+//     }, [])
+
+
+//     // r2.setPixelRatio(height/width)
+
+//     useFrame(({gl, scene, camera}) => {
+
+//         r2.render(scene, camera)
+
+//         // matrix.copy(camera.matrix).invert()
+//         // ref.current.quaternion.setFromRotationMatrix(matrix)
+//         // gl.autoClear = false
+
+//         // gl.render(scene, camera)
+
+//         // gl.setRenderTarget(rt)
+//         // gl.render(scene, camera)
+//         // gl.readRenderTargetPixels(rt, 0, 0, width, height, pixels );
+
+//         // for (let i = 0; i < imData.data.length; i += 4) {
+//         //     // img_data[i] = pixels[i];
+//         //     imData.data[i + 0] = pixels[i]  // R value
+//         //     imData.data[i + 1] = pixels[i + 1]    // G value
+//         //     imData.data[i + 2] = pixels[i + 2]  // B value
+//         //     imData.data[i + 3] = pixels[i + 3]  // A value
+//         // }
+//         // imData.data.set(pixels)
+
+//         // console.log(pixels)
+//         // ctx.putImageData(imData, 0, 0);
+//         // ctx.drawImage(gl.domElement, 0,0, 200, 200, 0, 0, 200, 200)
+
+
+//         gl.render(scene, camera)
+
+//         // gl.autoClear = false
+//         // gl.clearDepth()
+//         // gl.render(virtualScene, virtualCam.current)
+//       }, 1)
+
+//     return <> </>
+
+//     // return createPortal(
+//     //     <>
+//     //         <OrthographicCamera ref={virtualCam} makeDefault={false} position={[0, 0, 100]} />
+//     //         <mesh
+//     //             ref={ref}
+//     //             raycast={useCamera(virtualCam)}
+//     //             position={[size.width / 2 - 80, size.height / 2 - 80, 0]}
+//     //             onPointerOut={(e) => set(null)}
+//     //             onPointerMove={(e) => set(Math.floor(e.faceIndex / 2))}>
+//     //             {[...Array(6)].map((_, index) => (
+//     //             <meshLambertMaterial attachArray="material" key={index} color={hover === index ? 'hotpink' : 'white'} />
+//     //             ))}
+//     //             <boxGeometry args={[60, 60, 60]} />
+//     //         </mesh>
+//     //         <ambientLight intensity={0.5} />
+//     //         <pointLight position={[10, 10, 10]} intensity={0.5} />
+//     //     </>, virtualScene
+//     // )
+// }
 
 export default Swift

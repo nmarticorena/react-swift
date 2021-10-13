@@ -275,6 +275,7 @@ const Capture = (props: ICaptureProps): JSX.Element => {
     }, [props.startRecord, props.stopRecord, props.screenshot])
 
     useFrame(({ gl, scene, camera }) => {
+        gl.autoClear = true
         if (!props.isRecording) {
             gl.render(scene, camera)
         }
@@ -300,7 +301,7 @@ const Capture = (props: ICaptureProps): JSX.Element => {
         // else if (props.isRecording && !props.shouldCapture) {
         //     capturer.capture(gl.domElement)
         // }
-    }, 1)
+    }, 100)
 
     return <></>
 }

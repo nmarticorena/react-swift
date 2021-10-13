@@ -68,7 +68,8 @@
     "rollup-plugin-postcss": "^4.0.0",
     "rollup-plugin-scss": "^3.0.0",
     "sass": "^1.35.2",
-    "typescript": "^3.7.5"
+    "typescript": "^3.7.5",
+    "@types/webrtc": "0.0.30"
   },
   "dependencies": {
     "@react-three/drei": "^7.0.6",
