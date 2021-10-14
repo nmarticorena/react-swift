@@ -1,6 +1,13 @@
 import * as THREE from 'three'
 THREE.Object3D.DefaultUp.set(0, 0, 1)
-import React, { useState, useEffect, useReducer, useRef, Suspense, useMemo } from 'react'
+import React, {
+    useState,
+    useEffect,
+    useReducer,
+    useRef,
+    Suspense,
+    useMemo,
+} from 'react'
 import { Canvas, useFrame, useThree, createPortal } from '@react-three/fiber'
 import Capture, { ICaptureProps } from './Recorder'
 import SwiftInfo from '../components/SwiftInfo'
@@ -23,8 +30,11 @@ import Controls from './Controls'
 import { send } from 'process'
 import { finished } from 'stream'
 
-import { PerspectiveCamera, OrthographicCamera, useCamera } from '@react-three/drei'
-
+import {
+    PerspectiveCamera,
+    OrthographicCamera,
+    useCamera,
+} from '@react-three/drei'
 
 interface IMeshCollection {
     meshes: IShapeProps[]
@@ -158,11 +168,10 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     const [dataMessage, setDataMessage] = useState<IDataMessage>({
         sendProgress: 0,
         data: '',
-        finished: true
+        finished: true,
     })
     const pc = useRef<RTCPeerConnection>(null)
     const pcDataChannel = useRef<RTCDataChannel>(null)
-
 
     useEffect(() => {
         let socket = true
@@ -205,7 +214,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         }
     }, [])
 
-
     useEffect(() => {
         wsEvent.removeAllListeners('rtcLowWater')
         wsEvent.on('rtcLowWater', (data) => {
@@ -219,7 +227,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     }, [shapeDesc, formState, rtcConnected, dataParams, dataMessage])
 
     const onOpenRTC = () => {
-        console.log("OPENED")
+        console.log('OPENED')
         setRtcConnected(true)
 
         const chunkSize = pc.current.sctp.maxMessageSize
@@ -230,11 +238,11 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             highWaterMark: 1 * chunkSize,
         })
 
-        pcDataChannel.current.bufferedAmountLowThreshold = chunkSize;
+        pcDataChannel.current.bufferedAmountLowThreshold = chunkSize
 
         pcDataChannel.current.addEventListener('bufferedamountlow', (e) => {
             wsEvent.emit('rtcLowWater', false)
-        });
+        })
 
         sendData(true)
     }
@@ -256,28 +264,33 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
         // If message is at the start
         if (data.sendProgress === 0) {
-            pcDataChannel.current.send('imageStarting');
+            pcDataChannel.current.send('imageStarting')
         }
 
         let sendProgress = data.sendProgress
         let dataLengthRemaining = data.data.length - sendProgress
-        
 
         while (dataLengthRemaining > 0) {
-
-            if (pcDataChannel.current.bufferedAmount > dataParams.highWaterMark) {
+            if (
+                pcDataChannel.current.bufferedAmount > dataParams.highWaterMark
+            ) {
                 // console.log("HIGH TIDE")
                 setDataMessage({
                     ...data,
-                    sendProgress: sendProgress
+                    sendProgress: sendProgress,
                 })
 
                 return
             }
 
-            const dataLengthToSend = Math.min(dataParams.chunkSize, dataLengthRemaining)
+            const dataLengthToSend = Math.min(
+                dataParams.chunkSize,
+                dataLengthRemaining
+            )
 
-            pcDataChannel.current.send(data.data.slice(sendProgress, sendProgress + dataLengthToSend));
+            pcDataChannel.current.send(
+                data.data.slice(sendProgress, sendProgress + dataLengthToSend)
+            )
 
             // Update remaining amount
             dataLengthRemaining = dataLengthRemaining - dataLengthToSend
@@ -286,11 +299,12 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
         // If we made it this far, we finished the image
         setDataMessage({
-            ...data, finished: true
+            ...data,
+            finished: true,
         })
 
-        pcDataChannel.current.send('imageFinished');
-        
+        pcDataChannel.current.send('imageFinished')
+
         // Let python know
         wsEvent.emit('wsSwiftTx', '1')
         // console.log('Message Fin')
@@ -308,13 +322,13 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
     const ws_get_frame = (data) => {
         // console.log('Frame Request')
-        const canvas = document.getElementById(data) as CanvasElement;
+        const canvas = document.getElementById(data) as CanvasElement
         const im = canvas.toDataURL('image/jpeg', 0.9)
 
         const dataMessage = {
             sendProgress: 0,
             data: im,
-            finished: false
+            finished: false,
         }
 
         setDataMessage(dataMessage)
@@ -323,14 +337,13 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     }
 
     const ws_open_rtc = (data) => {
-        pc.current = new RTCPeerConnection();
+        pc.current = new RTCPeerConnection()
         pcDataChannel.current = connectRTC(pc.current, onOpenRTC, onCloseRTC)
     }
 
     const ws_rtc_offer = (data) => {
         console.log(data)
         pc.current.setRemoteDescription(data)
-        
     }
 
     const ws_shape_mounted = (data) => {
@@ -484,11 +497,8 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         // add_camera: ws_add_camera
     }
 
-
-
     return (
         <div className={styles.swiftContainer}>
-
             {shapeDesc.map((value, i) => {
                 if (value[0].stype === 'camera') {
                     return (
@@ -496,11 +506,11 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                             key={i}
                             id={value[0].id}
                             style={{
-                                width: value[0].im_size[0] + 'px',
-                                height: value[0].im_size[1] + 'px',
-                                display: 'none'
-                            }}>
-                        </canvas>
+                                width: value[0].width + 'px',
+                                height: value[0].height + 'px',
+                                display: 'none',
+                            }}
+                        ></canvas>
                     )
                 }
             })}
@@ -518,7 +528,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
             <Canvas
                 shadows={true}
-                gl={{ antialias: true, preserveDrawingBuffer: true}}
+                gl={{ antialias: true, preserveDrawingBuffer: true }}
                 id={'threeCanvas'}
             >
                 <Capture {...captureState} />
@@ -552,7 +562,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 {/* <UserCamera /> */}
                 {/* <canvas id={'ccanvas'} style={{height: '1280px', width: '720px', display: 'none'}}>
                 </canvas> */}
-
             </Canvas>
             {/* <canvas id={'ccanvas'} style={{height: '1280px', width: '720px', display: 'none'}}>
             </canvas> */}
@@ -566,7 +575,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 //     const canvas = document.getElementById('ccanvas') as CanvasElement
 //     const height = 720
 //     const width = 1280
-    
+
 //     const userRenderer = useMemo(() => {
 //         const render = new THREE.WebGLRenderer({
 //             canvas: canvas,
@@ -629,7 +638,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 //     const canvas = document.getElementById('ccanvas') as CanvasElement
 //     const height = 720
 //     const width = 1280
-    
+
 //     const r2 = useMemo(() => {
 //         const render = new THREE.WebGLRenderer({
 //             canvas: canvas,
@@ -646,7 +655,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 //         render.toneMapping = THREE.ACESFilmicToneMapping
 //         return render
 //     }, [])
-
 
 //     // r2.setPixelRatio(height/width)
 
@@ -676,7 +684,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 //         // console.log(pixels)
 //         // ctx.putImageData(imData, 0, 0);
 //         // ctx.drawImage(gl.domElement, 0,0, 200, 200, 0, 0, 200, 200)
-
 
 //         gl.render(scene, camera)
 
