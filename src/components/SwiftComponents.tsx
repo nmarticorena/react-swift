@@ -1,5 +1,12 @@
 import * as THREE from 'three'
-import React, { useEffect, useState, useRef, Suspense, lazy, useMemo } from 'react'
+import React, {
+    useEffect,
+    useState,
+    useRef,
+    Suspense,
+    lazy,
+    useMemo,
+} from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { PerspectiveCamera, useProgress, Html } from '@react-three/drei'
 
@@ -130,10 +137,18 @@ export interface IShapeProps {
     color?: number
     opacity?: number
     display?: boolean
-    id?: string
-    im_size: number[]
-
+    width: number
+    height: number
+    fov: number
+    id: string
 }
+
+// interface ICameraShapeProps extends IShapeProps {
+//     width: number
+//     height: number
+//     fov: number
+//     id: string
+// }
 
 const BasicShape = (props: IShapeProps): JSX.Element => {
     const shape = useRef<THREE.Mesh>()
@@ -212,8 +227,7 @@ const AxesShape = (props: IShapeProps): JSX.Element => {
 
 const CameraShape = (props: IShapeProps): JSX.Element => {
     const virtualCam = useRef<THREE.PerspectiveCamera>()
-    
-    
+
     const userRenderer = useMemo(() => {
         const canvas = document.getElementById(props.id) as CanvasElement
 
@@ -221,11 +235,11 @@ const CameraShape = (props: IShapeProps): JSX.Element => {
             canvas: canvas,
             antialias: true,
             alpha: true,
-            powerPreference: "high-performance",
+            powerPreference: 'high-performance',
             preserveDrawingBuffer: true,
         })
 
-        render.setSize(props.im_size[0], props.im_size[1])
+        render.setSize(props.width, props.height)
         render.setClearAlpha(0)
         render.shadowMap.type = THREE.PCFSoftShadowMap
         render.shadowMap.enabled = true
@@ -234,7 +248,7 @@ const CameraShape = (props: IShapeProps): JSX.Element => {
         return render
     }, [])
 
-    useFrame(({scene}) => {
+    useFrame(({ scene }) => {
         userRenderer.render(scene, virtualCam.current)
         console.log('renderr')
     }, 10)
@@ -255,8 +269,8 @@ const CameraShape = (props: IShapeProps): JSX.Element => {
                 name={'loaded'}
                 near={0.01}
                 far={100}
-                fov={96}
-                aspect={props.im_size[1] / props.im_size[0]}
+                fov={props.fov}
+                aspect={props.height / props.width}
             />
         </>
     )
