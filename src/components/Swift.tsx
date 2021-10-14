@@ -10,6 +10,7 @@ import formReducer, { DEFUALT_ELEMENTS } from './Swift.reducer'
 import { FormDispatch } from './FormDispatch'
 import wsEvent from './eventEmitter'
 import {
+    CanvasElement,
     Plane,
     ShadowedLight,
     Camera,
@@ -55,6 +56,52 @@ const GroupCollection = React.forwardRef<THREE.Group, IGroupCollection>(
     }
 )
 
+// interface IUserCameraProps {
+//     ctype: string
+//     q?: number[]
+//     t?: number[]
+//     im: number[]
+//     id?: string
+// }
+
+// interface ICameraCollection {
+//     cameras: IUserCameraProps[]
+// }
+
+// const CameraCollection = React.forwardRef<THREE.Group, ICameraCollection>(
+//     (props, ref): JSX.Element => {
+//         return (
+//             <group ref={ref}>
+//                 {props.cameras.map((cameraProps, i) => {
+//                     return <UserCamera key={i} {...cameraProps} />
+//                 })}
+//             </group>
+//         )
+//     }
+// )
+
+// const CanvasCollection = React.forwardRef<HTMLDivElement, ICameraCollection>(
+//     (props, ref): JSX.Element => {
+//         return (
+//             <div ref={ref}>
+//                 {props.cameras.map((cameraProps, i) => {
+//                     return (
+//                         <canvas
+//                             key={i}
+//                             id={cameraProps.id}
+//                             style={{
+//                                 height: cameraProps.im[0] + 'px',
+//                                 width: cameraProps.im[1] + 'px',
+//                                 // display: 'none'
+//                             }}>
+//                         </canvas>
+//                     )
+//                 })}
+//             </div>
+//         )
+//     }
+// )
+
 export interface ISwiftProps {
     port: number
 }
@@ -71,16 +118,15 @@ interface IDataMessage {
     finished: boolean
 }
 
-interface CanvasElement extends HTMLCanvasElement {
-    captureStream(frameRate?: number): MediaStream
-}
-
 const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     const [hasMounted, setHasMounted] = useState(false)
     const [time, setTime] = useState(0.0)
     const shapes = useRef<THREE.Group>()
+    // const cameras = useRef<THREE.Group>()
+    // const canvases = useRef<HTMLDivElement>()
     const ws = useRef<WebSocket>(null)
     const [shapeDesc, setShapeDesc] = useState<IShapeProps[][]>([])
+    // const [cameraDesc, setCameraDesc] = useState<IUserCameraProps[]>([])
     const [connected, setConnected] = useState(false)
     const [rtcConnected, setRtcConnected] = useState(false)
     const [formState, formDispatch] = useReducer(formReducer, {
@@ -253,9 +299,16 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         // console.log(timeUsed)
     }
 
+    // const ws_add_camera = (data) => {
+    //     const id = cameraDesc.length.toString()
+    //     console.log("ADDING CAMERA")
+    //     setCameraDesc([...shapeDesc, data])
+    //     wsEvent.emit('wsSwiftTx', id)
+    // }
+
     const ws_get_frame = (data) => {
         // console.log('Frame Request')
-        const canvas = document.getElementById('ccanvas') as CanvasElement;
+        const canvas = document.getElementById(data) as CanvasElement;
         const im = canvas.toDataURL('image/jpeg', 0.9)
 
         const dataMessage = {
@@ -427,11 +480,31 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         screenshot: ws_screenshot,
         offer: ws_rtc_offer,
         get_frame: ws_get_frame,
-        open_rtc: ws_open_rtc
+        open_rtc: ws_open_rtc,
+        // add_camera: ws_add_camera
     }
+
+
 
     return (
         <div className={styles.swiftContainer}>
+
+            {shapeDesc.map((value, i) => {
+                if (value[0].stype === 'camera') {
+                    return (
+                        <canvas
+                            key={i}
+                            id={value[0].id}
+                            style={{
+                                width: value[0].im_size[0] + 'px',
+                                height: value[0].im_size[1] + 'px',
+                                display: 'none'
+                            }}>
+                        </canvas>
+                    )
+                }
+            })}
+
             <FormDispatch.Provider value={formDispatch}>
                 <SwiftInfo
                     time={time}
@@ -475,59 +548,76 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 <axesHelper args={[100]} />
 
                 <GroupCollection meshes={shapeDesc} ref={shapes} />
-                <UserCamera />
+                {/* <CameraCollection cameras={cameraDesc} ref={cameras} /> */}
+                {/* <UserCamera /> */}
+                {/* <canvas id={'ccanvas'} style={{height: '1280px', width: '720px', display: 'none'}}>
+                </canvas> */}
+
             </Canvas>
-            <canvas id={'ccanvas'} style={{height: '1280', width: '720', display: 'none'}}>
-            </canvas>
+            {/* <canvas id={'ccanvas'} style={{height: '1280px', width: '720px', display: 'none'}}>
+            </canvas> */}
+            {/* <CanvasCollection cameras={cameraDesc} ref={canvases} /> */}
         </div>
     )
 }
 
-const UserCamera = () => {
-    const virtualCam = useRef<THREE.PerspectiveCamera>()
-    const canvas = document.getElementById('ccanvas') as CanvasElement
-    const height = 720
-    const width = 1280
+// const UserCamera = (props: IUserCameraProps): JSX.Element => {
+//     const virtualCam = useRef<THREE.PerspectiveCamera>()
+//     const canvas = document.getElementById('ccanvas') as CanvasElement
+//     const height = 720
+//     const width = 1280
     
-    const r2 = useMemo(() => {
-        const render = new THREE.WebGLRenderer({
-            canvas: canvas,
-            antialias: true,
-            alpha: true,
-            powerPreference: "high-performance",
-            preserveDrawingBuffer: true,
-        })
-        render.setSize(width, height)
-        render.setClearAlpha(0)
-        render.shadowMap.type = THREE.PCFSoftShadowMap
-        render.shadowMap.enabled = true
-        render.outputEncoding = THREE.sRGBEncoding
-        render.toneMapping = THREE.ACESFilmicToneMapping
-        return render
-    }, [])
+//     const userRenderer = useMemo(() => {
+//         const render = new THREE.WebGLRenderer({
+//             canvas: canvas,
+//             antialias: true,
+//             alpha: true,
+//             powerPreference: "high-performance",
+//             preserveDrawingBuffer: true,
+//         })
+//         render.setSize(width, height)
+//         render.setClearAlpha(0)
+//         render.shadowMap.type = THREE.PCFSoftShadowMap
+//         render.shadowMap.enabled = true
+//         render.outputEncoding = THREE.sRGBEncoding
+//         render.toneMapping = THREE.ACESFilmicToneMapping
+//         return render
+//     }, [])
 
-    useFrame(({scene}) => {
-        r2.render(scene, virtualCam.current)
-    }, 10)
+//     useFrame(({scene}) => {
+//         userRenderer.render(scene, virtualCam.current)
+//     }, 10)
 
-    useEffect(() => {
-        virtualCam.current.lookAt(0, 0, 0)
-    }, [])
+//     useEffect(() => {
+//         virtualCam.current.lookAt(0, 0, 0)
+//         userRenderer.domElement.id = 'ccanvas'
+//         // document.body.appendChild( userRenderer.domElement );
+//     }, [])
 
-    return (
-        <>
-            <PerspectiveCamera
-                makeDefault={false}
-                ref={virtualCam}
-                position={[0.2, 1.2, 0.7]}
-                near={0.01}
-                far={100}
-                fov={70}
-                aspect={720 / 1280}
-            />
-        </>
-    )
-}
+//     return (
+//         <>
+//             <PerspectiveCamera
+//                 makeDefault={false}
+//                 ref={virtualCam}
+//                 position={[0.2, 1.2, 0.7]}
+//                 near={0.01}
+//                 far={100}
+//                 fov={70}
+//                 aspect={720 / 1280}
+//             />
+//         </>
+//     )
+// }
+
+//   // fix the offset, in order the principal point to be the center of the image
+//   camera.setViewOffset(
+//     fSpyParameters.imageWidth,
+//     fSpyParameters.imageHeight,
+//     -(fSpyParameters.principalPoint.x * fSpyParameters.imageWidth) / 2,
+//     (fSpyParameters.principalPoint.y * fSpyParameters.imageHeight) / 2,
+//     fSpyParameters.imageWidth,
+//     fSpyParameters.imageHeight
+//   );
 
 // const CCamera = () => {
 //     const { gl, scene, camera, size } = useThree()
