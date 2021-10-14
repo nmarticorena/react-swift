@@ -1,11 +1,15 @@
 import * as THREE from 'three'
-import React, { useEffect, useState, useRef, Suspense, lazy } from 'react'
+import React, { useEffect, useState, useRef, Suspense, lazy, useMemo } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { PerspectiveCamera, useProgress, Html } from '@react-three/drei'
 
 THREE.Object3D.DefaultUp.set(0, 0, 1)
 // const Loader = lazy(() => import('./Loader'))
 import Loader from './Loader'
+
+export interface CanvasElement extends HTMLCanvasElement {
+    captureStream(frameRate?: number): MediaStream
+}
 
 export const Plane: React.FC = (): JSX.Element => {
     const { scene } = useThree()
@@ -126,6 +130,9 @@ export interface IShapeProps {
     color?: number
     opacity?: number
     display?: boolean
+    id?: string
+    im_size: number[]
+
 }
 
 const BasicShape = (props: IShapeProps): JSX.Element => {
@@ -203,6 +210,58 @@ const AxesShape = (props: IShapeProps): JSX.Element => {
     )
 }
 
+const CameraShape = (props: IShapeProps): JSX.Element => {
+    const virtualCam = useRef<THREE.PerspectiveCamera>()
+    
+    
+    const userRenderer = useMemo(() => {
+        const canvas = document.getElementById(props.id) as CanvasElement
+
+        const render = new THREE.WebGLRenderer({
+            canvas: canvas,
+            antialias: true,
+            alpha: true,
+            powerPreference: "high-performance",
+            preserveDrawingBuffer: true,
+        })
+
+        render.setSize(props.im_size[0], props.im_size[1])
+        render.setClearAlpha(0)
+        render.shadowMap.type = THREE.PCFSoftShadowMap
+        render.shadowMap.enabled = true
+        render.outputEncoding = THREE.sRGBEncoding
+        render.toneMapping = THREE.ACESFilmicToneMapping
+        return render
+    }, [])
+
+    useFrame(({scene}) => {
+        userRenderer.render(scene, virtualCam.current)
+        console.log('renderr')
+    }, 10)
+
+    // useEffect(() => {
+    //     virtualCam.current.lookAt(0, 0, 0)
+    //     // userRenderer.domElement.id = 'ccanvas'
+    //     // document.body.appendChild( userRenderer.domElement );
+    // }, [])
+
+    return (
+        <>
+            <PerspectiveCamera
+                makeDefault={false}
+                ref={virtualCam}
+                position={[props.t[0], props.t[1], props.t[2]]}
+                quaternion={[props.q[0], props.q[1], props.q[2], props.q[3]]}
+                name={'loaded'}
+                near={0.01}
+                far={100}
+                fov={96}
+                aspect={props.im_size[1] / props.im_size[0]}
+            />
+        </>
+    )
+}
+
 export const Shape = (props: IShapeProps): JSX.Element => {
     if (props.display === false) {
         return <React.Fragment></React.Fragment>
@@ -216,6 +275,9 @@ export const Shape = (props: IShapeProps): JSX.Element => {
         case 'axes':
             return <AxesShape {...props} />
             break
+
+        case 'camera':
+            return <CameraShape {...props} />
 
         case 'box':
         case 'cylinder':
