@@ -1,6 +1,13 @@
 import * as THREE from 'three'
 THREE.Object3D.DefaultUp.set(0, 0, 1)
-import React, { useState, useEffect, useReducer, useRef, Suspense, useCallback } from 'react'
+import React, {
+    useState,
+    useEffect,
+    useReducer,
+    useRef,
+    Suspense,
+    useCallback,
+} from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import Capture, { ICaptureProps } from './Recorder'
 import SwiftInfo from '../components/SwiftInfo'
@@ -99,7 +106,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         }
 
         if (socket) {
-            ws.current = new WebSocket('ws://localhost:' + port + '/')
+            ws.current = new WebSocket('ws://swifted.xyz:' + port + '/')
             ws.current.onopen = () => {
                 ws.current.onclose = () => {
                     setTimeout(() => {
