@@ -106,7 +106,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         }
 
         if (socket) {
-            ws.current = new WebSocket('ws://swifted.xyz:' + port + '/')
+            ws.current = new WebSocket('ws://localhost:' + port + '/')
             ws.current.onopen = () => {
                 ws.current.onclose = () => {
                     setTimeout(() => {
