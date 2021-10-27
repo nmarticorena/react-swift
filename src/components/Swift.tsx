@@ -56,7 +56,7 @@ const GroupCollection = React.forwardRef<THREE.Group, IGroupCollection>(
     }
 )
 
-const SwiftState = () => {}
+const SwiftState = () => { }
 
 export interface ISwiftProps {
     port: number
@@ -106,7 +106,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         }
 
         if (socket) {
-            ws.current = new WebSocket('ws://swifted.xyz:' + port + '/')
+            ws.current = new WebSocket('ws://localhost:' + port + '/')
             ws.current.onopen = () => {
                 ws.current.onclose = () => {
                     setTimeout(() => {
