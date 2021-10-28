@@ -128,6 +128,8 @@ export interface IShapeProps {
     display?: boolean
 }
 
+
+
 const BasicShape = (props: IShapeProps): JSX.Element => {
     const shape = useRef<THREE.Mesh>()
 
