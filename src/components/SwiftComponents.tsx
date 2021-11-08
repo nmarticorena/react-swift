@@ -6,6 +6,7 @@ import { PerspectiveCamera, useProgress, Html } from '@react-three/drei'
 THREE.Object3D.DefaultUp.set(0, 0, 1)
 // const Loader = lazy(() => import('./Loader'))
 import Loader from './Loader'
+import { Vector3 } from 'three'
 
 export const Plane: React.FC = (): JSX.Element => {
     const { scene } = useThree()
@@ -123,12 +124,10 @@ export interface IShapeProps {
     q?: number[]
     t?: number[]
     v?: number[]
-    color?: number
+    color?: string | number
     opacity?: number
     display?: boolean
 }
-
-
 
 const BasicShape = (props: IShapeProps): JSX.Element => {
     const shape = useRef<THREE.Mesh>()
@@ -205,6 +204,28 @@ const AxesShape = (props: IShapeProps): JSX.Element => {
     )
 }
 
+const ArrowShape = (props: IShapeProps): JSX.Element => {
+    const shape = useRef<THREE.Mesh>()
+
+    return (
+        <mesh
+            ref={shape}
+            position={[props.t[0], props.t[1], props.t[2]]}
+            quaternion={[props.q[0], props.q[1], props.q[2], props.q[3]]}
+            name={'loaded'}
+        >
+            <arrowHelper
+                args={[
+                    new Vector3(0, 0, 1),
+                    new Vector3(0, 0, 0),
+                    props.length,
+                    props.color,
+                ]}
+            />
+        </mesh>
+    )
+}
+
 export const Shape = (props: IShapeProps): JSX.Element => {
     if (props.display === false) {
         return <React.Fragment></React.Fragment>
@@ -217,6 +238,10 @@ export const Shape = (props: IShapeProps): JSX.Element => {
 
         case 'axes':
             return <AxesShape {...props} />
+            break
+
+        case 'arrow':
+            return <ArrowShape {...props} />
             break
 
         case 'box':
