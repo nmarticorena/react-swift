@@ -85,6 +85,16 @@ export const Camera = (props: ICameraProps): JSX.Element => {
 }
 
 const PrimativeShapes = (props: IShapeProps): JSX.Element => {
+    const cyl = useRef<THREE.CylinderBufferGeometry>()
+
+    // If shape is a cylinder, rotatex by 90 deg because threejs
+    // does clyinder along the y axis, not the z axis
+    useEffect(() => {
+        if (props.stype === 'cylinder') {
+            cyl.current.rotateX(Math.PI / 2)
+        }
+    }, [])
+
     switch (props.stype) {
         case 'box':
             return (
