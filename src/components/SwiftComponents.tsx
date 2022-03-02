@@ -219,8 +219,11 @@ const AxesShape = (props: IShapeProps): JSX.Element => {
 
 const ArrowShape = (props: IShapeProps): JSX.Element => {
     const shape = useRef<THREE.Mesh>()
+    const head_length = props.length * props.head_length
+    const head_radius = head_length * props.head_radius
+    const body_length = (1 - props.head_length) * props.length
 
-    if (props.radius == 0) {
+    if (props.radius === 0) {
         return (
             <mesh
                 ref={shape}
@@ -234,15 +237,13 @@ const ArrowShape = (props: IShapeProps): JSX.Element => {
                         new Vector3(0, 0, 0),
                         props.length,
                         props.color,
-                        props.head_length,
-                        props.head_radius,
+                        head_length,
+                        head_radius,
                     ]}
                 />
             </mesh>
         )
     } else {
-        const head_length = props.length * props.head_length
-        const head_radius = head_length * props.head_radius
         return (
             <group
                 ref={shape}
@@ -251,11 +252,11 @@ const ArrowShape = (props: IShapeProps): JSX.Element => {
                 name={'loaded'}
             >
                 <mesh
-                    position={[0, 0, props.length / 2]}
+                    position={[0, 0, body_length / 2]}
                     quaternion={[0.0, 0.707106781, 0.707106781, 0.0]}
                 >
                     <cylinderBufferGeometry
-                        args={[props.radius, props.radius, props.length, 32]}
+                        args={[props.radius, props.radius, body_length, 32]}
                     />
                     <meshStandardMaterial
                         transparent={props.opacity ? true : false}
@@ -264,7 +265,7 @@ const ArrowShape = (props: IShapeProps): JSX.Element => {
                     />
                 </mesh>
                 <mesh
-                    position={[0, 0, props.length + head_length / 2]}
+                    position={[0, 0, body_length + head_length / 2]}
                     quaternion={[0.0, 0.707106781, 0.707106781, 0.0]}
                 >
                     <coneBufferGeometry args={[head_radius, head_length, 32]} />
