@@ -6,7 +6,7 @@ import { PerspectiveCamera, useProgress, Html } from '@react-three/drei'
 THREE.Object3D.DefaultUp.set(0, 0, 1)
 // const Loader = lazy(() => import('./Loader'))
 import Loader from './Loader'
-import { Vector3 } from 'three'
+import { Quaternion, Vector3 } from 'three'
 
 export const Plane: React.FC = (): JSX.Element => {
     const { scene } = useThree()
@@ -111,6 +111,7 @@ const PrimativeShapes = (props: IShapeProps): JSX.Element => {
         case 'cylinder':
             return (
                 <cylinderBufferGeometry
+                    ref={cyl}
                     args={[props.radius, props.radius, props.length, 32]}
                 />
             )
@@ -137,6 +138,8 @@ export interface IShapeProps {
     color?: string | number
     opacity?: number
     display?: boolean
+    head_length?: number
+    head_radius?: number
 }
 
 const BasicShape = (props: IShapeProps): JSX.Element => {
@@ -217,23 +220,63 @@ const AxesShape = (props: IShapeProps): JSX.Element => {
 const ArrowShape = (props: IShapeProps): JSX.Element => {
     const shape = useRef<THREE.Mesh>()
 
-    return (
-        <mesh
-            ref={shape}
-            position={[props.t[0], props.t[1], props.t[2]]}
-            quaternion={[props.q[0], props.q[1], props.q[2], props.q[3]]}
-            name={'loaded'}
-        >
-            <arrowHelper
-                args={[
-                    new Vector3(0, 0, 1),
-                    new Vector3(0, 0, 0),
-                    props.length,
-                    props.color,
-                ]}
-            />
-        </mesh>
-    )
+    if (props.radius == 0) {
+        return (
+            <mesh
+                ref={shape}
+                position={[props.t[0], props.t[1], props.t[2]]}
+                quaternion={[props.q[0], props.q[1], props.q[2], props.q[3]]}
+                name={'loaded'}
+            >
+                <arrowHelper
+                    args={[
+                        new Vector3(0, 0, 1),
+                        new Vector3(0, 0, 0),
+                        props.length,
+                        props.color,
+                        props.head_length,
+                        props.head_radius,
+                    ]}
+                />
+            </mesh>
+        )
+    } else {
+        const head_length = props.length * props.head_length
+        const head_radius = head_length * props.head_radius
+        return (
+            <group
+                ref={shape}
+                position={[props.t[0], props.t[1], props.t[2]]}
+                quaternion={[props.q[0], props.q[1], props.q[2], props.q[3]]}
+                name={'loaded'}
+            >
+                <mesh
+                    position={[0, 0, props.length / 2]}
+                    quaternion={[0.0, 0.707106781, 0.707106781, 0.0]}
+                >
+                    <cylinderBufferGeometry
+                        args={[props.radius, props.radius, props.length, 32]}
+                    />
+                    <meshStandardMaterial
+                        transparent={props.opacity ? true : false}
+                        color={props.color ? props.color : 'hotpink'}
+                        opacity={props.opacity ? props.opacity : 1.0}
+                    />
+                </mesh>
+                <mesh
+                    position={[0, 0, props.length + head_length / 2]}
+                    quaternion={[0.0, 0.707106781, 0.707106781, 0.0]}
+                >
+                    <coneBufferGeometry args={[head_radius, head_length, 32]} />
+                    <meshStandardMaterial
+                        transparent={props.opacity ? true : false}
+                        color={props.color ? props.color : 'hotpink'}
+                        opacity={props.opacity ? props.opacity : 1.0}
+                    />
+                </mesh>
+            </group>
+        )
+    }
 }
 
 export const Shape = (props: IShapeProps): JSX.Element => {
