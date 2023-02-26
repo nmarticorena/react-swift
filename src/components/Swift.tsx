@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-THREE.Object3D.DefaultUp.set(0, 0, 1)
+THREE.Object3D.DEFAULT_UP = new Vector3(0, 0, 1)
 import React, {
     useState,
     useEffect,
@@ -25,6 +25,7 @@ import {
 } from './SwiftComponents'
 
 import Controls from './Controls'
+import { Vector3 } from 'three'
 
 interface IMeshCollection {
     meshes: IShapeProps[]
@@ -97,30 +98,56 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
         let port = props.port
 
+        const server_params = window.location.search.substring(1).split('&')
+        console.log(server_params)
+
         if (port === 0) {
-            port = parseInt(window.location.search.substring(1))
+            port = parseInt(server_params[0])
         }
 
         if (port === null) {
             socket = false
         }
 
-        if (socket) {
-            ws.current = new WebSocket('ws://localhost:' + port + '/')
-            ws.current.onopen = () => {
-                ws.current.onclose = () => {
-                    setTimeout(() => {
-                        window.close()
-                    }, 5000)
+        if (port == 12345) {
+            // We're going with jupyter kernel communications
+            console.log("Hello World");
+
+            (async () => {
+
+                const channel = await parent.google.colab.kernel.comms.open('swift_channel', 'Connected', null);
+
+                for await (const message of channel.messages) {
+                    console.log(message.data)
+                    channel.send({ 'data': 2 })
                 }
 
-                ws.current.send('Connected')
-                setConnected(true)
+                console.log("I think it's closed")
+            })()
+
+
+        } else {
+            // We're going with web sockets
+
+            let ws_url = 'ws://localhost:' + port + '/'
+
+            if (socket) {
+                ws.current = new WebSocket(ws_url)
+                ws.current.onopen = () => {
+                    ws.current.onclose = () => {
+                        setTimeout(() => {
+                            window.close()
+                        }, 5000)
+                    }
+
+                    ws.current.send('Connected')
+                    setConnected(true)
+                }
+                wsEvent.on('wsSwiftTx', (data) => {
+                    console.log(data)
+                    ws.current.send(data)
+                })
             }
-            wsEvent.on('wsSwiftTx', (data) => {
-                console.log(data)
-                ws.current.send(data)
-            })
         }
 
         if (ws.current) {

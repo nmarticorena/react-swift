@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, Suspense } from 'react'
 import { useLoader } from '@react-three/fiber'
 import * as THREE from 'three'
-THREE.Object3D.DefaultUp.set(0, 0, 1)
+
 import { IShapeProps } from './SwiftComponents'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'

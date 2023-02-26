@@ -25,8 +25,8 @@
     "deploy": "gh-pages -d example/build"
   },
   "peerDependencies": {
-    "react": "17.0.2",
-    "react-dom": "17.0.2"
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   },
   "devDependencies": {
     "@rollup/plugin-babel": "^5.3.0",
@@ -39,10 +39,10 @@
     "@testing-library/user-event": "^7.2.1",
     "@types/jest": "^25.1.4",
     "@types/node": "^12.12.38",
-    "@types/react": "17.0.2",
-    "@types/react-dom": "17.0.2",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
     "@types/sass": "^1.16.0",
-    "@types/three": "^0.127.1",
+    "@types/three": "^0.149.0",
     "@typescript-eslint/eslint-plugin": "^2.26.0",
     "@typescript-eslint/parser": "^2.26.0",
     "babel-eslint": "^10.0.3",
@@ -60,8 +60,8 @@
     "node-sass": "^6.0.1",
     "postcss": "^8.3.5",
     "prettier": "^2.0.4",
-    "react": "17.0.2",
-    "react-dom": "17.0.2",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
     "react-scripts": "^4.0.3",
     "rollup": "^2.53.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
@@ -71,10 +71,10 @@
     "typescript": "^3.7.5"
   },
   "dependencies": {
-    "@react-three/drei": "^7.0.6",
-    "@react-three/fiber": "^6.2.3",
+    "@react-three/drei": "^9.0.0",
+    "@react-three/fiber": "^8.0.0",
     "events": "^3.3.0",
-    "three": "^0.126.1"
+    "three": "^0.149.0"
   },
   "files": [
     "dist"

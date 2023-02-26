@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, Suspense, lazy } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { PerspectiveCamera, useProgress, Html } from '@react-three/drei'
 
-THREE.Object3D.DefaultUp.set(0, 0, 1)
+THREE.Object3D.DEFAULT_UP = new Vector3(0, 0, 1)
 // const Loader = lazy(() => import('./Loader'))
 import Loader from './Loader'
 import { Quaternion, Vector3 } from 'three'
