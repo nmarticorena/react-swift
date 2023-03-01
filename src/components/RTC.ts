@@ -17,11 +17,24 @@ const connectRTC = (pc: RTCPeerConnection, onOpen: () => void, onClose: () => vo
         console.log("RTC Disconnected")
         console.log(ev)
         onClose()
+
+        setTimeout(() => {
+            window.close()
+        }, 5000)
     }
 
     pcDataChannel.onerror = (ev) => {
         console.log("ERROR")
         console.log(ev)
+    }
+
+    pcDataChannel.onmessage = (event) => {
+        console.log("MESSAGE")
+
+        const eventdata = JSON.parse(event.data)
+        const func = eventdata[0]
+        const data = eventdata[1]
+        wsEvent.emit('wsRx', func, data)
     }
 
     negotiateRTC(pc);
@@ -57,21 +70,47 @@ const negotiateRTC = (pc: RTCPeerConnection) => {
                 }
             })
         })
+        // .then(function () {
+        //     var offer = pc.localDescription
+
+        //     const message = JSON.stringify({
+        //         type: 'offer',
+        //         offer: {
+        //             sdp: offer.sdp,
+        //             type: offer.type,
+        //         },
+        //     })
+
+        //     wsEvent.emit('wsSwiftTx', message)
+
+        //     // ws.send(message)
+        // })
         .then(function () {
-            var offer = pc.localDescription
-
-            const message = JSON.stringify({
-                type: 'offer',
-                offer: {
-                    sdp: offer.sdp,
-                    type: offer.type,
+            var offer = pc.localDescription;
+            console.log(offer)
+            return fetch('/offer', {
+                body: JSON.stringify({
+                    type: 'offer',
+                    offer: {
+                        sdp: offer.sdp,
+                        type: offer.type,
+                    },
+                }),
+                headers: {
+                    'Content-Type': 'application/json'
                 },
-            })
-
-            wsEvent.emit('wsSwiftTx', message)
-
-            // ws.send(message)
+                method: 'POST'
+            });
         })
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (answer) {
+            return pc.setRemoteDescription(answer);
+        })
+        .catch(function (e) {
+            console.log(e);
+        });
 }
 
 export { connectRTC }

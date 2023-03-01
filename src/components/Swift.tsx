@@ -120,7 +120,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
     const pcDataChannel = useRef<RTCDataChannel>(null)
 
     useEffect(() => {
-        let socket = true
+        let socket = false
         setHasMounted(true)
 
         let port = props.port
@@ -136,45 +136,27 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             socket = false
         }
 
-        if (port == 12345) {
-            // We're going with jupyter kernel communications
-            console.log("Hello World");
 
-            (async () => {
+        // We're going with web sockets
 
-                const channel = await parent.google.colab.kernel.comms.open('swift_channel', 'Connected', null);
+        let ws_url = 'ws://localhost:' + port + '/'
 
-                for await (const message of channel.messages) {
-                    console.log(message.data)
-                    channel.send({ 'data': 2 })
+        if (socket) {
+            ws.current = new WebSocket(ws_url)
+            ws.current.onopen = () => {
+                ws.current.onclose = () => {
+                    setTimeout(() => {
+                        window.close()
+                    }, 5000)
                 }
 
-                console.log("I think it's closed")
-            })()
-
-
-        } else {
-            // We're going with web sockets
-
-            let ws_url = 'ws://localhost:' + port + '/'
-
-            if (socket) {
-                ws.current = new WebSocket(ws_url)
-                ws.current.onopen = () => {
-                    ws.current.onclose = () => {
-                        setTimeout(() => {
-                            window.close()
-                        }, 5000)
-                    }
-
-                    ws.current.send('Connected')
-                    setConnected(true)
-                }
-                wsEvent.on('wsSwiftTx', (data) => {
-                    console.log(data)
-                    ws.current.send(data)
-                })
+                ws.current.send('Connected')
+                setConnected(true)
             }
+            wsEvent.on('wsSwiftTx', (data) => {
+                console.log(data)
+                ws.current.send(data)
+            })
         }
 
         if (ws.current) {
@@ -185,6 +167,17 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 wsEvent.emit('wsRx', func, data)
             }
         }
+
+        // Start the RTC connection
+        var config = {
+            sdpSemantics: 'unified-plan'
+        };
+
+        config.iceServers = [{ urls: ['stun:stun.l.google.com:19302'] }];
+
+        pc.current = new RTCPeerConnection(config)
+        pcDataChannel.current = connectRTC(pc.current, onOpenRTC, onCloseRTC)
+
     }, [])
 
     useEffect(() => {
@@ -196,8 +189,21 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         wsEvent.removeAllListeners('wsRx')
         wsEvent.on('wsRx', (func, data) => {
             console.log(func)
-            sendData(false)
             ws_funcs[func](data)
+        })
+
+        wsEvent.removeAllListeners('wsSwiftTx')
+        wsEvent.on('wsSwiftTx', (data) => {
+            console.log(data)
+            const dataMessage = {
+                sendProgress: 0,
+                data: data,
+                finished: false,
+            }
+
+            setDataMessage(dataMessage)
+
+            sendData(false, dataMessage)
         })
     }, [shapeDesc, formState, rtcConnected, dataParams, dataMessage])
 
@@ -220,71 +226,64 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         })
 
         sendData(true)
+
+
     }
 
     const onCloseRTC = () => {
+        console.log("CLOSED RTC CONNECTION")
         setRtcConnected(false)
     }
 
     const sendData = (connected: boolean, customDataMessage?: IDataMessage) => {
         // const timeBefore = performance.now();
 
-        if (!rtcConnected) {
+        const data = customDataMessage ? customDataMessage : dataMessage
+
+        if (data.finished || (!rtcConnected && !connected)) {
             return
         }
 
-        pcDataChannel.current.send('Hello')
-
-        // const data = customDataMessage ? customDataMessage : dataMessage
-
-        // if (data.finished || (!rtcConnected && !connected)) {
-        //     return
-        // }
-
-        // console.log(data.sendProgress)
-
-        // // If message is at the start
+        // If message is at the start
         // if (data.sendProgress === 0) {
         //     pcDataChannel.current.send('imageStarting')
         // }
 
-        // let sendProgress = data.sendProgress
-        // let dataLengthRemaining = data.data.length - sendProgress
+        let sendProgress = data.sendProgress
+        let dataLengthRemaining = data.data.length - sendProgress
 
-        // while (dataLengthRemaining > 0) {
-        //     if (
-        //         pcDataChannel.current.bufferedAmount > dataParams.highWaterMark
-        //     ) {
-        //         // console.log("HIGH TIDE")
-        //         setDataMessage({
-        //             ...data,
-        //             sendProgress: sendProgress,
-        //         })
+        while (dataLengthRemaining > 0) {
+            if (
+                pcDataChannel.current.bufferedAmount > dataParams.highWaterMark
+            ) {
+                // console.log("HIGH TIDE")
+                setDataMessage({
+                    ...data,
+                    sendProgress: sendProgress,
+                })
 
-        //         return
-        //     }
+                return
+            }
 
-        //     const dataLengthToSend = Math.min(
-        //         dataParams.chunkSize,
-        //         dataLengthRemaining
-        //     )
+            const dataLengthToSend = Math.min(
+                dataParams.chunkSize,
+                dataLengthRemaining
+            )
 
-        //     pcDataChannel.current.send(
-        //         data.data.slice(sendProgress, sendProgress + dataLengthToSend)
-        //     )
+            pcDataChannel.current.send(
+                data.data.slice(sendProgress, sendProgress + dataLengthToSend)
+            )
 
-        //     // Update remaining amount
-        //     dataLengthRemaining = dataLengthRemaining - dataLengthToSend
-        //     sendProgress += dataLengthToSend
-        // }
+            // Update remaining amount
+            dataLengthRemaining = dataLengthRemaining - dataLengthToSend
+            sendProgress += dataLengthToSend
+        }
 
-        // // If we made it this far, we finished the image
-        // setDataMessage({
-        //     ...data,
-        //     finished: true,
-        // })
-
-        // pcDataChannel.current.send('imageFinished')
+        // If we made it this far, we finished the image
+        setDataMessage({
+            ...data,
+            finished: true,
+        })
 
         // // Let python know
         // wsEvent.emit('wsSwiftTx', '1')
