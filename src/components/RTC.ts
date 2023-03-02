@@ -9,7 +9,6 @@ const connectRTC = (pc: RTCPeerConnection, onOpen: () => void, onClose: () => vo
 
     pcDataChannel.onopen = (ev: Event) => {
         console.log("RTC Connected")
-        console.log(ev)
         onOpen()
     }
 
@@ -24,17 +23,20 @@ const connectRTC = (pc: RTCPeerConnection, onOpen: () => void, onClose: () => vo
     }
 
     pcDataChannel.onerror = (ev) => {
-        console.log("ERROR")
+        console.log("RTC Error")
         console.log(ev)
     }
 
     pcDataChannel.onmessage = (event) => {
-        console.log("MESSAGE")
-
         const eventdata = JSON.parse(event.data)
         const func = eventdata[0]
         const data = eventdata[1]
         wsEvent.emit('wsRx', func, data)
+    }
+
+    pcDataChannel.onclosing = (ev) => {
+        console.log("RTC Closing")
+        console.log(ev)
     }
 
     negotiateRTC(pc);
@@ -70,21 +72,6 @@ const negotiateRTC = (pc: RTCPeerConnection) => {
                 }
             })
         })
-        // .then(function () {
-        //     var offer = pc.localDescription
-
-        //     const message = JSON.stringify({
-        //         type: 'offer',
-        //         offer: {
-        //             sdp: offer.sdp,
-        //             type: offer.type,
-        //         },
-        //     })
-
-        //     wsEvent.emit('wsSwiftTx', message)
-
-        //     // ws.send(message)
-        // })
         .then(function () {
             var offer = pc.localDescription;
             console.log(offer)
@@ -109,6 +96,7 @@ const negotiateRTC = (pc: RTCPeerConnection) => {
             return pc.setRemoteDescription(answer);
         })
         .catch(function (e) {
+            console.log("RTC Connection Error")
             console.log(e);
         });
 }

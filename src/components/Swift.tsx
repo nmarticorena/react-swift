@@ -78,6 +78,7 @@ interface IDataMessage {
 }
 
 const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
+    const [usingSocket, setUsingSocket] = useState(true)
     const [hasMounted, setHasMounted] = useState(false)
     const [time, setTime] = useState(0.0)
     const shapes = useRef<THREE.Group>()
@@ -121,12 +122,12 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
     useEffect(() => {
         let socket = false
+        let stun = false
         setHasMounted(true)
 
         let port = props.port
 
         const server_params = window.location.search.substring(1).split('&')
-        console.log(server_params)
 
         if (port === 0) {
             port = parseInt(server_params[0])
@@ -136,12 +137,25 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             socket = false
         }
 
+        if (port === 0) {
+            // Using RTC without STUN server
+            socket = false
+            stun = false
+        } else if (port === 1) {
+            // Using RTC with STUN server
+            socket = false
+            stun = true
+        } else {
+            // Using Websockets
+            socket = true
+        }
 
-        // We're going with web sockets
-
-        let ws_url = 'ws://localhost:' + port + '/'
+        setUsingSocket(socket)
 
         if (socket) {
+            // Start the websocket connection
+            console.log('Using Websockets on port ' + port)
+            let ws_url = 'ws://localhost:' + port + '/'
             ws.current = new WebSocket(ws_url)
             ws.current.onopen = () => {
                 ws.current.onclose = () => {
@@ -154,9 +168,24 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
                 setConnected(true)
             }
             wsEvent.on('wsSwiftTx', (data) => {
-                console.log(data)
                 ws.current.send(data)
             })
+        } else {
+            // Start the RTC connection
+            console.log('Using RTC connection')
+            var config: RTCConfiguration = {};
+
+            if (stun) {
+                config.iceServers = [
+                    {
+                        urls: ['stun:stun.voipia.net:3478']
+                    }
+                }
+
+            pc.current = new RTCPeerConnection(config)
+            pcDataChannel.current = connectRTC(pc.current, onOpenRTC, onCloseRTC)
+
+
         }
 
         if (ws.current) {
@@ -168,16 +197,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             }
         }
 
-        // Start the RTC connection
-        var config = {
-            sdpSemantics: 'unified-plan'
-        };
-
-        config.iceServers = [{ urls: ['stun:stun.l.google.com:19302'] }];
-
-        pc.current = new RTCPeerConnection(config)
-        pcDataChannel.current = connectRTC(pc.current, onOpenRTC, onCloseRTC)
-
     }, [])
 
     useEffect(() => {
@@ -188,28 +207,26 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
         wsEvent.removeAllListeners('wsRx')
         wsEvent.on('wsRx', (func, data) => {
-            console.log(func)
             ws_funcs[func](data)
         })
 
-        wsEvent.removeAllListeners('wsSwiftTx')
-        wsEvent.on('wsSwiftTx', (data) => {
-            console.log(data)
-            const dataMessage = {
-                sendProgress: 0,
-                data: data,
-                finished: false,
-            }
-
-            setDataMessage(dataMessage)
-
-            sendData(false, dataMessage)
-        })
     }, [shapeDesc, formState, rtcConnected, dataParams, dataMessage])
 
+    useEffect(() => {
+        if (!usingSocket) {
+            wsEvent.removeAllListeners('wsSwiftTx')
+            wsEvent.on('wsSwiftTx', (data) => {
+                sendSmallData(data)
+            })
+
+
+        }
+
+    }, [rtcConnected, usingSocket])
+
     const onOpenRTC = () => {
-        console.log('OPENED')
         setRtcConnected(true)
+        setConnected(true)
 
         const chunkSize = pc.current.sctp.maxMessageSize
 
@@ -226,18 +243,24 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         })
 
         sendData(true)
-
-
     }
 
     const onCloseRTC = () => {
-        console.log("CLOSED RTC CONNECTION")
+        console.log("RTC Connection Closed")
         setRtcConnected(false)
     }
 
-    const sendData = (connected: boolean, customDataMessage?: IDataMessage) => {
-        // const timeBefore = performance.now();
+    const sendSmallData = (data: string) => {
 
+        if (!rtcConnected) {
+            console.log("RTC not connected, can not send message to Swift")
+            return
+        }
+
+        pcDataChannel.current.send(data)
+    }
+
+    const sendData = (connected: boolean, customDataMessage?: IDataMessage) => {
         const data = customDataMessage ? customDataMessage : dataMessage
 
         if (data.finished || (!rtcConnected && !connected)) {
@@ -284,12 +307,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             ...data,
             finished: true,
         })
-
-        // // Let python know
-        // wsEvent.emit('wsSwiftTx', '1')
-
-        // const timeUsed = performance.now() - timeBefore;
-        // console.log(timeUsed)
     }
 
     const ws_shape_mounted = (data) => {
@@ -318,7 +335,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
 
     const ws_shape = (data) => {
         const id = shapeDesc.length.toString()
-        console.log(id)
         setShapeDesc([...shapeDesc, data])
         wsEvent.emit('wsSwiftTx', id)
     }
@@ -405,8 +421,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
             filename: data[1],
             startRecord: true,
         })
-        // loadCapture(parseFloat(data[0]), data[2], data[1])
-        // startRecording()
 
         wsEvent.emit('wsSwiftTx', '0')
     }
@@ -441,16 +455,6 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         sendData(false, dataMessage)
     }
 
-    const ws_open_rtc = (data) => {
-        pc.current = new RTCPeerConnection()
-        pcDataChannel.current = connectRTC(pc.current, onOpenRTC, onCloseRTC)
-    }
-
-    const ws_rtc_offer = (data) => {
-        console.log(data)
-        pc.current.setRemoteDescription(data)
-    }
-
     const ws_funcs = {
         shape_mounted: ws_shape_mounted,
         shape: ws_shape,
@@ -464,9 +468,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         start_recording: ws_start_recording,
         stop_recording: ws_stop_recording,
         screenshot: ws_screenshot,
-        offer: ws_rtc_offer,
         get_frame: ws_get_frame,
-        open_rtc: ws_open_rtc,
     }
 
     // useEffect(() => {
