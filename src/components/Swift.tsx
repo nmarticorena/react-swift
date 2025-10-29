@@ -260,12 +260,18 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         wsEvent.emit('wsSwiftTx', '0')
     }
 
-    const ws_update_shape = (data) => {
-        formDispatch({
-            type: 'updateElement',
-            index: data.id,
-            data: data,
-        })
+    const ws_shape_update = (data) => {
+        let id=data[0];
+        let data_one=data[1];
+        console.log(data_one);
+        console.log("my version");
+
+        const newShapeDesc = [...shapeDesc];
+        console.log(newShapeDesc[id]);
+
+        newShapeDesc[id] = [data_one];
+        setShapeDesc(newShapeDesc);
+        wsEvent.emit('wsSwiftTx', data[0])
     }
 
     const ws_update_element = (data) => {
@@ -322,7 +328,7 @@ const Swift: React.FC<ISwiftProps> = (props: ISwiftProps): JSX.Element => {
         start_recording: ws_start_recording,
         stop_recording: ws_stop_recording,
         screenshot: ws_screenshot,
-        update_shape: ws_update_shape,
+        shape_update: ws_shape_update,
     }
 
     // useEffect(() => {
